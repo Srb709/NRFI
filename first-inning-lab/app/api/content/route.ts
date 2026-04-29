@@ -1,0 +1,1 @@
+import { getGames,getPredictions } from '@/lib/local-store';import { generateContent } from '@/lib/content-generator'; export async function GET(){return Response.json(generateContent(await getGames() as any, await getPredictions() as any));}

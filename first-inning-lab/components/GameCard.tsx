@@ -1,0 +1,2 @@
+import { Game, Prediction } from '@/lib/types';import ModelLabel from './ModelLabel';
+export default function GameCard({game,pred}:{game:Game;pred:Prediction}){return <div className='card space-y-2'><div className='flex justify-between'><h3>{game.game}</h3><ModelLabel label={pred.public_label}/></div><p>{game.away_pitcher} vs {game.home_pitcher}</p><p>Lean: {pred.lean} | NRFI {Math.round(pred.nrfi_probability*100)}%</p><ul>{pred.reasons.map(r=><li key={r}>• {r}</li>)}</ul><ul>{pred.warnings.map(w=><li key={w} className='text-amber-300'>⚠ {w}</li>)}</ul></div>}

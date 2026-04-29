@@ -1,0 +1,7 @@
+create extension if not exists "pgcrypto";
+create table if not exists games (id uuid primary key default gen_random_uuid(), game_id text unique, game_date date, start_time timestamptz, away_team text, home_team text, venue text, away_pitcher text, home_pitcher text, status text, created_at timestamptz default now());
+create table if not exists predictions (id uuid primary key default gen_random_uuid(), game_id text references games(game_id), run_date date, model_version text, nrfi_probability numeric, yrfi_probability numeric, lean text, public_label text, confidence_tier text, reasons jsonb, warnings jsonb, created_at timestamptz default now());
+create table if not exists public_results (id uuid primary key default gen_random_uuid(), game_id text, posted_date date, posted_label text, model_lean text, first_inning_runs int, actual_result text, win_loss text, note text, created_at timestamptz default now());
+create table if not exists generated_posts (id uuid primary key default gen_random_uuid(), post_date date, post_type text, content text, created_at timestamptz default now());
+create table if not exists model_runs (id uuid primary key default gen_random_uuid(), model_version text, run_type text, metrics jsonb, created_at timestamptz default now());
+create table if not exists backtest_runs (id uuid primary key default gen_random_uuid(), model_version text, start_date date, end_date date, metrics jsonb, created_at timestamptz default now());

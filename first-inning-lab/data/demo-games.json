@@ -1,0 +1,90 @@
+[
+  {
+    "game_id": "g1",
+    "game": "NYY @ BOS",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "NYY",
+    "home_team": "BOS",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g2",
+    "game": "LAD @ SF",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "LAD",
+    "home_team": "SF",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g3",
+    "game": "CHC @ STL",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "CHC",
+    "home_team": "STL",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g4",
+    "game": "ATL @ PHI",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "ATL",
+    "home_team": "PHI",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g5",
+    "game": "SEA @ HOU",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "SEA",
+    "home_team": "HOU",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g6",
+    "game": "TEX @ OAK",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "TEX",
+    "home_team": "OAK",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g7",
+    "game": "NYM @ MIA",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "NYM",
+    "home_team": "MIA",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  },
+  {
+    "game_id": "g8",
+    "game": "CLE @ DET",
+    "start_time": "2026-04-29T23:10:00Z",
+    "away_team": "CLE",
+    "home_team": "DET",
+    "away_pitcher": "Starter A",
+    "home_pitcher": "Starter B",
+    "status": "Scheduled",
+    "is_demo": true
+  }
+]

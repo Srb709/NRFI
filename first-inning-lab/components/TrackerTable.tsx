@@ -1,0 +1,2 @@
+import { PublicResult } from '@/lib/types';
+export default function TrackerTable({rows}:{rows:PublicResult[]}){return <table className='w-full text-sm'><thead><tr><th>Date</th><th>Game</th><th>Label</th><th>Lean</th><th>Result</th><th>W/L</th><th>Note</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i} className='border-t border-zinc-800'><td>{r.date}</td><td>{r.game}</td><td>{r.posted_label}</td><td>{r.model_lean}</td><td>{r.result}</td><td>{r.win_loss}</td><td>{r.note}</td></tr>)}</tbody></table>}

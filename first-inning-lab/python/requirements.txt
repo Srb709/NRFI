@@ -1,0 +1,9 @@
+pandas
+numpy
+scikit-learn
+pybaseball
+requests
+joblib
+pydantic
+python-dotenv
+pytest
