@@ -37,7 +37,7 @@ def predict_baseline(input_features: dict) -> dict:
         (feature_status.get("probable_pitchers_available"), "Missing probable pitcher; model price withheld."),
         (feature_status.get("pitcher_stats_available"), "Pitcher stats unavailable; model price withheld."),
         (feature_status.get("team_offense_stats_available"), "Team offense stats unavailable; model price withheld."),
-        (feature_status.get("park_factor_available"), "Park factor unavailable; model price withheld."),
+        ((feature_status.get("park_or_venue_signal_available") if feature_status.get("park_or_venue_signal_available") is not None else feature_status.get("park_factor_available")), "Park/venue signal unavailable; model price withheld."),
             ]
     missing = [msg for ok, msg in required if not ok]
     if missing:
@@ -46,10 +46,12 @@ def predict_baseline(input_features: dict) -> dict:
     p = real.get("pitcher_safety_score")
     o = real.get("offense_danger_score")
     pw = real.get("park_weather_score")
-    if p is None or o is None or pw is None:
+    venue = real.get("venue_first_inning_score")
+    if p is None or o is None or (pw is None and venue is None):
         return _pass_output(reasons + ["Required real features unavailable; model price withheld."], warnings, dq, feature_status)
 
-    nrfi_probability = _clamp_probability(0.54 + 0.45 * (p - 0.5) - 0.40 * (o - 0.5) - 0.25 * (pw - 0.5))
+    signal = pw if pw is not None else venue
+    nrfi_probability = _clamp_probability(0.54 + 0.45 * (p - 0.5) - 0.40 * (o - 0.5) - 0.25 * (signal - 0.5))
     yrfi_probability = _clamp_probability(1 - nrfi_probability)
     lean = "NRFI" if nrfi_probability >= 0.55 else ("YRFI" if yrfi_probability >= 0.55 else "PASS")
     confidence_tier = "PASS" if lean == "PASS" else ("A" if max(nrfi_probability, yrfi_probability) >= 0.62 else "B")
@@ -64,12 +66,13 @@ def predict_baseline(input_features: dict) -> dict:
         "model_status": "priced",
         "probability_quality": "final_board" if feature_status.get("lineups_confirmed") else "early_board",
         "pricing_readiness": "priced_final_lineup_confirmed" if feature_status.get("lineups_confirmed") else "priced_core_early",
-        "reasons": dedupe_preserve_order(reasons or ["Real feature blend from current-season MLB data."]),
+        "reasons": dedupe_preserve_order((reasons or ["Real feature blend from current-season MLB data."]) + (["Historical venue first-inning factor used."] if pw is None and venue is not None else [])),
         "warnings": dedupe_preserve_order(warnings),
         "feature_breakdown": {
             "pitcher_safety_score": p,
             "offense_danger_score": o,
             "park_weather_score": pw,
+            "venue_first_inning_score": venue,
             "recent_form_score": real.get("recent_form_score"),
         },
         "data_quality_score": round(dq, 3),

@@ -1,0 +1,60 @@
+import csv
+import json
+from pathlib import Path
+
+from first_inning_lab.features import historical_first_inning_features as hff
+from first_inning_lab.modeling.baseline_rules_model import predict_baseline
+from first_inning_lab.pipelines import build_historical_first_inning_dataset as builder
+
+
+def test_builder_nrfi_and_yrfi(monkeypatch, tmp_path):
+    monkeypatch.setattr(builder, "_root", lambda: tmp_path)
+    monkeypatch.setattr(builder, "get_schedule", lambda _d: [
+        {"game_pk": 1, "game_date": "2025-03-27", "away_team": "A", "home_team": "B", "away_team_id": 10, "home_team_id": 11, "venue_id": 1, "venue": "V", "status": "Final"},
+        {"game_pk": 2, "game_date": "2025-03-27", "away_team": "C", "home_team": "D", "away_team_id": 12, "home_team_id": 13, "venue_id": 1, "venue": "V", "status": "Final"},
+        {"game_pk": 3, "game_date": "2025-03-27", "away_team": "E", "home_team": "F", "away_team_id": 14, "home_team_id": 15, "venue_id": 1, "venue": "V", "status": "Postponed"},
+    ])
+    monkeypatch.setattr(builder, "get_game_feed", lambda _g: {"gameData": {"probablePitchers": {}}})
+    monkeypatch.setattr(builder, "get_linescore", lambda g: {"innings": [{"away": {"runs": 0 if g == 1 else 1}, "home": {"runs": 0}}], "teams": {"away": {"runs": 2}, "home": {"runs": 1}}})
+    meta = builder.run("2025-03-27", "2025-03-27")
+    rows = list(csv.DictReader((tmp_path / "data/historical/first_inning_results.csv").open()))
+    assert len(rows) == 2
+    assert rows[0]["nrfi_result"] == "True"
+    assert rows[1]["yrfi_result"] == "True"
+    assert meta["games_skipped"] == 1
+
+
+def test_missing_linescore_warns(monkeypatch, tmp_path):
+    monkeypatch.setattr(builder, "_root", lambda: tmp_path)
+    monkeypatch.setattr(builder, "get_schedule", lambda _d: [{"game_pk": 1, "game_date": "2025-03-27", "status": "Final"}])
+    monkeypatch.setattr(builder, "get_linescore", lambda _g: {})
+    monkeypatch.setattr(builder, "get_game_feed", lambda _g: {})
+    meta = builder.run("2025-03-27", "2025-03-27")
+    assert meta["warnings_count"] == 1
+
+
+def test_historical_features_thresholds(tmp_path, monkeypatch):
+    p = tmp_path / "first_inning_results.csv"
+    with p.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=["season","venue_id","total_runs_1st","nrfi_result","away_team_id","home_team_id","away_runs_1st","home_runs_1st","away_starting_pitcher_id","home_starting_pitcher_id"])
+        w.writeheader()
+        for i in range(120):
+            w.writerow({"season": 2025, "venue_id": 1 if i < 25 else 2, "total_runs_1st": 1 if i < 25 else 0, "nrfi_result": False if i < 25 else True, "away_team_id": 10, "home_team_id": 11, "away_runs_1st": 1, "home_runs_1st": 0, "away_starting_pitcher_id": 50, "home_starting_pitcher_id": 51})
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+    lg = hff.get_league_first_inning_baseline(2025)
+    v = hff.get_venue_first_inning_factor(1, 2025)
+    assert lg["available"] is True
+    assert v["available"] is True
+    assert round(v["venue_first_inning_run_factor"], 3) == round(v["venue_avg_first_inning_runs"] / lg["league_avg_first_inning_runs"], 3)
+    assert hff.get_pitcher_first_inning_profile(999, 2025)["available"] is False
+
+
+def test_model_uses_historical_venue_for_pricing():
+    out = predict_baseline({"feature_status": {"probable_pitchers_available": True, "pitcher_stats_available": True, "team_offense_stats_available": True, "park_or_venue_signal_available": True, "lineups_confirmed": False}, "real_features": {"pitcher_safety_score": 0.6, "offense_danger_score": 0.4, "park_weather_score": None, "venue_first_inning_score": 0.55}, "missing_data": [], "warnings": [], "data_quality_score": 0.8})
+    assert out["probability_available"] is True
+    assert out["pricing_readiness"] == "priced_core_early"
+
+
+def test_model_blocks_without_park_or_venue():
+    out = predict_baseline({"feature_status": {"probable_pitchers_available": True, "pitcher_stats_available": True, "team_offense_stats_available": True, "park_or_venue_signal_available": False, "lineups_confirmed": False}, "real_features": {"pitcher_safety_score": 0.6, "offense_danger_score": 0.4, "park_weather_score": None, "venue_first_inning_score": None}, "missing_data": [], "warnings": [], "data_quality_score": 0.8})
+    assert out["pricing_readiness"] == "unpriced_missing_core_inputs"
