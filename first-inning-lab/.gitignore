@@ -15,3 +15,6 @@ data/live/archive/*
 !data/live/archive/.gitkeep
 data/processed/cache/*
 !data/processed/cache/.gitkeep
+
+data/cache/**/*.json
+!data/cache/**/.gitkeep

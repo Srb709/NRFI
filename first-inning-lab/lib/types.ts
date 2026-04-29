@@ -18,8 +18,13 @@ export type Game = {
 export type Prediction = {
   game_id: string;
   model_version?: string;
-  nrfi_probability: number;
-  yrfi_probability: number;
+  nrfi_probability: number | null;
+  yrfi_probability: number | null;
+  probability_available?: boolean;
+  model_status?: string;
+  probability_quality?: string;
+  missing_data?: string[];
+  feature_status?: Record<string, boolean>;
   lean: Lean;
   public_label: string;
   confidence_tier?: ConfidenceTier;

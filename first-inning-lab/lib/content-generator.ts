@@ -48,7 +48,7 @@ export function generateContent(games: Game[], predictions: Prediction[]): Gener
   const yrfiSmoke = withGame.filter((x) => x.prediction.public_label === 'YRFI Smoke');
   const trapWatch = withGame.filter((x) => ['Trap Watch', 'Chaos Zone', 'Stay Away Spot', 'Pass'].includes(x.prediction.public_label));
 
-  const boardLines = withGame.slice(0, 10).map(({ prediction, game }) => `• ${game!.game} — ${prediction.public_label} (${getLeanDisplay(prediction.lean)})`);
+  const boardLines = withGame.slice(0, 10).map(({ prediction, game }) => `• ${game!.game} — ${prediction.probability_available === false ? 'No model price (Pass, data incomplete)' : `${prediction.public_label} (${getLeanDisplay(prediction.lean)})`}`);
   const cleanLines = cleanSetups.slice(0, 4).map(({ prediction, game }) => `• ${game!.game}: clean first-inning setup, model lean ${prediction.lean}, notes: ${prediction.reasons[0] ?? 'Stable run environment.'}`);
   const smokeLines = yrfiSmoke.slice(0, 3).map(({ prediction, game }) => `• ${game!.game}: first-inning smoke with top-of-order danger. Watch ${prediction.warnings[0] ?? 'early traffic risk'}.`);
   const trapLines = trapWatch.slice(0, 4).map(({ prediction, game }) => `• ${game!.game}: ${prediction.public_label} due to ${prediction.warnings[0] ?? 'walk-risk flag'}.`);

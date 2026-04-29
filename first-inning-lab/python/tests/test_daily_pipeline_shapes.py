@@ -33,11 +33,7 @@ def test_pipeline_uses_park_coordinates_for_weather(monkeypatch):
         return {'temperature_f': 70}
 
     monkeypatch.setattr(pipeline, 'get_game_weather', fake_weather)
-    monkeypatch.setattr(pipeline, 'build_pitcher_features', lambda *_a, **_k: {})
-    monkeypatch.setattr(pipeline, 'build_offense_features', lambda *_a, **_k: {})
-    monkeypatch.setattr(pipeline, 'build_park_weather_features', lambda *_a, **_k: {})
-    monkeypatch.setattr(pipeline, 'build_certainty_features', lambda *_a, **_k: {'board_status': 'EARLY'})
-    monkeypatch.setattr(pipeline, 'combine_game_features', lambda *_a, **_k: {})
+    monkeypatch.setattr(pipeline, 'assemble_game_features', lambda *_a, **_k: {'feature_status': {'lineups_confirmed': False}, 'data_quality_score': 0.5, 'real_features': {}, 'warnings': [], 'missing_data': []})
     monkeypatch.setattr(pipeline, 'predict_baseline', lambda *_a, **_k: {'lean': 'PASS', 'data_quality_score': 0.5})
 
     pipeline.run('2026-04-29')
