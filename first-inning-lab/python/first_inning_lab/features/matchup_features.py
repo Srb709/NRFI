@@ -1,4 +1,29 @@
+from __future__ import annotations
+
+
+def _clamp(v: float) -> float:
+    return max(0.0, min(1.0, v))
+
+
 def combine_game_features(game, away_pitcher, home_pitcher, away_offense, home_offense, park_weather, certainty):
-    warnings=away_pitcher['warnings']+home_pitcher['warnings']+away_offense['warnings']+home_offense['warnings']+park_weather['warnings']+certainty['warnings']
-    reasons=away_pitcher['reasons']+home_pitcher['reasons']+away_offense['reasons']+home_offense['reasons']+park_weather['reasons']+certainty['reasons']
-    return {'game_id':game['game_id'],'pitcher_safety_score':(away_pitcher['pitcher_safety_score']+home_pitcher['pitcher_safety_score'])/2,'offense_danger_score':(away_offense['offense_danger_score']+home_offense['offense_danger_score'])/2,'park_weather_score':park_weather['park_weather_score'],'certainty_score':certainty['data_quality_score'],'data_quality_score':certainty['data_quality_score'],'recent_form_score':0.5,'warnings':warnings,'reasons':reasons,'lineups_confirmed':certainty['lineups_confirmed'],'starters_confirmed_or_probable':certainty['starters_confirmed_or_probable'],'bullpen_or_opener_risk':certainty['bullpen_or_opener_risk'],'weather_flags':park_weather.get('flags',[])}
+    warnings = []
+    reasons = []
+    for key in (away_pitcher, home_pitcher, away_offense, home_offense, park_weather, certainty):
+        warnings.extend(key.get("warnings", []))
+        reasons.extend(key.get("reasons", []))
+    return {
+        "game_id": game.get("game_id"),
+        "pitcher_safety_score": _clamp((away_pitcher.get("pitcher_safety_score", 0.5) + home_pitcher.get("pitcher_safety_score", 0.5)) / 2),
+        "offense_danger_score": _clamp((away_offense.get("offense_danger_score", 0.5) + home_offense.get("offense_danger_score", 0.5)) / 2),
+        "park_weather_score": _clamp(park_weather.get("park_weather_score", 0.5)),
+        "certainty_score": _clamp(certainty.get("data_quality_score", 0.5)),
+        "data_quality_score": _clamp(certainty.get("data_quality_score", 0.5)),
+        "recent_form_score": 0.5,
+        "lineups_confirmed": certainty.get("lineups_confirmed", False),
+        "starters_confirmed_or_probable": certainty.get("starters_confirmed_or_probable", False),
+        "advanced_stats_available": away_pitcher.get("data_available", False) and home_pitcher.get("data_available", False),
+        "bullpen_or_opener_risk": certainty.get("bullpen_or_opener_risk", True),
+        "weather_flags": park_weather.get("flags", []),
+        "warnings": warnings,
+        "reasons": reasons,
+    }

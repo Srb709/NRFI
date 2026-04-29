@@ -1,5 +1,23 @@
-from first_inning_lab.data_sources.mlb_stats_api import normalize_game
+from first_inning_lab.data_sources import mlb_stats_api as api
 
-def test_normalize_game():
-    g=normalize_game({'gamePk':1,'gameDate':'2026-04-29T01:00:00Z','teams':{'away':{'team':{'name':'A','id':1}},'home':{'team':{'name':'H','id':2}}},'venue':{'name':'V','id':3},'status':{'detailedState':'Scheduled'}})
-    assert g['game_pk']==1 and g['away_team']=='A'
+
+def test_normalize_game_shape():
+    raw = {"gamePk": 123, "gameDate": "2026-04-29T23:05:00Z", "teams": {"away": {"team": {"name": "PHI", "id": 1}}, "home": {"team": {"name": "NYM", "id": 2}}}, "venue": {"name": "Citi Field", "id": 3}, "status": {"detailedState": "Scheduled"}}
+    norm = api.normalize_game(raw)
+    assert norm["game_pk"] == 123 and norm["away_team"] == "PHI"
+
+
+def test_first_inning_result_states(monkeypatch):
+    monkeypatch.setattr(api, "get_linescore", lambda _pk: {"innings": [{"away": {"runs": 0}, "home": {"runs": 0}}]})
+    assert api.get_first_inning_result(1)["result"] == "NRFI"
+    monkeypatch.setattr(api, "get_linescore", lambda _pk: {"innings": [{"away": {"runs": 1}, "home": {"runs": 0}}]})
+    assert api.get_first_inning_result(1)["result"] == "YRFI"
+    monkeypatch.setattr(api, "get_linescore", lambda _pk: {"innings": [{"away": {"runs": None}, "home": {"runs": 0}}]})
+    assert api.get_first_inning_result(1)["result"] == "PENDING"
+    monkeypatch.setattr(api, "get_linescore", lambda _pk: {})
+    assert api.get_first_inning_result(1)["result"] == "UNKNOWN"
+
+
+def test_failed_api_response_no_crash(monkeypatch):
+    monkeypatch.setattr(api, "safe_get_json", lambda *_a, **_k: {})
+    assert api.get_schedule("2026-04-29") == []
