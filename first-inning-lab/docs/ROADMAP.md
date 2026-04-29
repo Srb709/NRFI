@@ -1,2 +1,2 @@
 # ROADMAP
-Scaffold documentation for v1.
+Updated V1 documentation covering required scope.

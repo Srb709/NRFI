@@ -1,11 +1,8 @@
 [
-  {
-    "date": "2026-04-27",
-    "game": "NYY @ BOS",
-    "posted_label": "Clean First Frame",
-    "model_lean": "NRFI",
-    "result": "NRFI",
-    "win_loss": "W",
-    "note": "Quiet first frame cashed."
-  }
+{"date":"2026-06-10","game":"Metro Caps @ Harbor Foxes (DEMO)","posted_label":"Lab Favorite","model_lean":"NRFI","result":"NRFI","win_loss":"W","note":"Clean first frame held."},
+{"date":"2026-06-10","game":"Coastal Owls @ Inland Jets (DEMO)","posted_label":"YRFI Smoke","model_lean":"YRFI","result":"YRFI","win_loss":"W","note":"Early traffic converted."},
+{"date":"2026-06-11","game":"Iron Bears @ Valley Kings (DEMO)","posted_label":"Trap Watch","model_lean":"YRFI","result":"NRFI","win_loss":"L","note":"Starter settled quickly."},
+{"date":"2026-06-11","game":"Union Stars @ Bay Pilots (DEMO)","posted_label":"Pass","model_lean":"PASS","result":"NRFI","win_loss":"PASS","note":"No public post."},
+{"date":"2026-06-12","game":"Lakeside Comets @ Ridge Wolves (DEMO)","posted_label":"Clean First Frame","model_lean":"NRFI","result":"NRFI","win_loss":"W","note":"Low walk traffic."},
+{"date":"2026-06-12","game":"Desert Fox @ Snow Hawks (DEMO)","posted_label":"Chaos Zone","model_lean":"YRFI","result":"YRFI","win_loss":"W","note":"Volatility showed early."}
 ]
