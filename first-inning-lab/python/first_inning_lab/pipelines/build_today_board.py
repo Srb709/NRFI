@@ -29,7 +29,7 @@ def _empty_board(date: str, warnings: list[str]) -> dict:
         "games": [],
         "predictions": [],
         "warnings": warnings,
-        "summary": {"games": 0, "nrfi_leans": 0, "yrfi_leans": 0, "passes": 0, "low_confidence": 0},
+        "summary": {"games": 0, "nrfi_leans": 0, "yrfi_leans": 0, "passes": 0, "low_confidence": 0, "average_data_quality": None},
     }
 
 
@@ -58,12 +58,14 @@ def run(date: str):
         pred["board_status"] = certainty.get("board_status")
         preds.append(pred)
         statuses.append(certainty.get("board_status"))
+    avg_quality = (sum(float(p.get("data_quality_score", 0.5)) for p in preds) / len(preds)) if preds else None
     summary = {
         "games": len(games),
         "nrfi_leans": sum(1 for p in preds if p.get("lean") == "NRFI"),
         "yrfi_leans": sum(1 for p in preds if p.get("lean") == "YRFI"),
         "passes": sum(1 for p in preds if p.get("lean") == "PASS"),
         "low_confidence": sum(1 for p in preds if p.get("board_status") == "LOW_CONFIDENCE"),
+        "average_data_quality": avg_quality,
     }
     board = _empty_board(date, warnings) if not games else {
         "generated_at": datetime.utcnow().isoformat() + "Z",
@@ -82,7 +84,14 @@ def run(date: str):
     print("First Inning Lab Board")
     print(f"Date: {date}")
     print(f"Source: {board['source']}")
-    print(f"Games: {summary['games']} NRFI: {summary['nrfi_leans']} YRFI: {summary['yrfi_leans']} PASS: {summary['passes']}")
+    print(f"Generated: {board['generated_at']}")
+    print(f"Games: {summary['games']}")
+    print(f"NRFI: {summary['nrfi_leans']}")
+    print(f"YRFI: {summary['yrfi_leans']}")
+    print(f"PASS: {summary['passes']}")
+    print(f"Low confidence: {summary['low_confidence']}")
+    if not games:
+        print("No games available from schedule pull; wrote fallback live files.")
 
 
 if __name__ == "__main__":
