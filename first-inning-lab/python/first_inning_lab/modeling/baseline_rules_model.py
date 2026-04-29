@@ -17,6 +17,7 @@ def _pass_output(reasons: list[str], warnings: list[str], data_quality: float, f
         "confidence_tier": "PASS",
         "model_status": "pass_insufficient_data",
         "probability_quality": "unpriced",
+        "pricing_readiness": "unpriced_missing_core_inputs",
         "reasons": dedupe_preserve_order(reasons),
         "warnings": dedupe_preserve_order(warnings),
         "feature_breakdown": {},
@@ -37,8 +38,7 @@ def predict_baseline(input_features: dict) -> dict:
         (feature_status.get("pitcher_stats_available"), "Pitcher stats unavailable; model price withheld."),
         (feature_status.get("team_offense_stats_available"), "Team offense stats unavailable; model price withheld."),
         (feature_status.get("park_factor_available"), "Park factor unavailable; model price withheld."),
-        (dq >= 0.70, "Data quality below minimum threshold for pricing."),
-    ]
+            ]
     missing = [msg for ok, msg in required if not ok]
     if missing:
         return _pass_output(reasons + missing, warnings, dq, feature_status)
@@ -62,7 +62,8 @@ def predict_baseline(input_features: dict) -> dict:
         "public_label": "Clean First Frame" if lean == "NRFI" else ("YRFI Smoke" if lean == "YRFI" else "Pass"),
         "confidence_tier": confidence_tier,
         "model_status": "priced",
-        "probability_quality": "early_board",
+        "probability_quality": "final_board" if feature_status.get("lineups_confirmed") else "early_board",
+        "pricing_readiness": "priced_final_lineup_confirmed" if feature_status.get("lineups_confirmed") else "priced_core_early",
         "reasons": dedupe_preserve_order(reasons or ["Real feature blend from current-season MLB data."]),
         "warnings": dedupe_preserve_order(warnings),
         "feature_breakdown": {

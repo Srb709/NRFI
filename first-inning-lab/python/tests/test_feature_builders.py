@@ -13,6 +13,6 @@ def test_offense_missing_neutral_warning():
     assert out["offense_danger_score"] == 0.5 and out["warnings"]
 
 
-def test_park_weather_missing_weather_neutral_score():
-    out = build_park_weather_features({"venue_id": None}, {}, {"source": "neutral_fallback", "weather_run_factor": 1.0, "weather_flags": []})
-    assert 0.0 <= out["park_weather_score"] <= 1.0
+def test_park_weather_missing_weather_unavailable_score():
+    out = build_park_weather_features({"venue_id": None}, {}, {"source": "unavailable", "available": False})
+    assert out["park_weather_score"] is None and out["park_factor_available"] is False

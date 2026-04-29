@@ -44,12 +44,12 @@ def assemble_game_features(game: dict, season: int, parks: dict, weather: dict) 
 
     pitch_score_a, pitch_score_h = _score_pitcher(away_p), _score_pitcher(home_p)
     off_score_a, off_score_h = _score_offense(away_o), _score_offense(home_o)
-    park_score = park_weather.get("park_weather_score") if park_weather.get("park_factor_available", True) else None
+    park_score = park_weather.get("park_weather_score") if park_weather.get("park_factor_available") else None
 
     pitcher_available = away_p.get("available") and home_p.get("available") and pitch_score_a is not None and pitch_score_h is not None
     offense_available = away_o.get("available") and home_o.get("available") and off_score_a is not None and off_score_h is not None
     park_available = park_score is not None
-    weather_available = bool(weather) and weather.get("source") != "neutral_fallback"
+    weather_available = bool((weather or {}).get("available"))
 
     if not pitcher_available:
         missing.append("pitcher_stats")
@@ -73,6 +73,7 @@ def assemble_game_features(game: dict, season: int, parks: dict, weather: dict) 
             "pitcher_stats_available": bool(pitcher_available),
             "team_offense_stats_available": bool(offense_available),
             "park_factor_available": bool(park_available),
+            "stadium_coordinates_available": bool(park_weather.get("stadium_coordinates_available")),
             "weather_available": bool(weather_available),
             "lineups_confirmed": bool(lineup.get("lineups_confirmed")),
         },
