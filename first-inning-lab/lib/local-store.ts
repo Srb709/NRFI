@@ -9,6 +9,10 @@ const defaultMeta: BoardMetadata = {
   source: 'demo', generatedAt: null, boardStatus: 'DEMO_FALLBACK', isDemo: true, warnings: ['Live local board unavailable.'],
 };
 
+const VALID_LEANS: PublicResult['model_lean'][] = ['NRFI', 'YRFI', 'PASS'];
+const VALID_RESULTS: PublicResult['result'][] = ['NRFI', 'YRFI', 'PENDING', 'UNKNOWN'];
+const VALID_WIN_LOSS: PublicResult['win_loss'][] = ['W', 'L', 'PASS', 'PENDING', 'UNKNOWN'];
+
 async function readJson<T>(fileName: string): Promise<T | null> {
   try { return JSON.parse(await fs.readFile(path.join(dataDir, fileName), 'utf-8')) as T; } catch { return null; }
 }
@@ -60,24 +64,28 @@ export async function getPredictions(): Promise<Prediction[]> {
 }
 
 function normalizeResult(row: LiveResult | PublicResult): PublicResult {
-  const lean = (row as LiveResult).lean ?? (row as PublicResult).model_lean ?? 'PASS';
-  const result = (row as LiveResult).result ?? (row as PublicResult).result ?? 'UNKNOWN';
-  const rawWinLoss = (row as LiveResult).outcome ?? (row as PublicResult).win_loss ?? 'UNKNOWN';
-  const winLoss = ['W', 'L', 'PASS', 'PENDING', 'UNKNOWN'].includes(rawWinLoss) ? rawWinLoss : 'UNKNOWN';
+  const leanRaw = (row as LiveResult).lean ?? (row as PublicResult).model_lean;
+  const resultRaw = (row as LiveResult).result ?? (row as PublicResult).result;
+  const winLossRaw = (row as LiveResult).outcome ?? (row as PublicResult).win_loss;
+
+  const lean: PublicResult['model_lean'] = VALID_LEANS.includes(leanRaw as PublicResult['model_lean']) ? (leanRaw as PublicResult['model_lean']) : 'PASS';
+  const result: PublicResult['result'] = VALID_RESULTS.includes(resultRaw as PublicResult['result']) ? (resultRaw as PublicResult['result']) : 'UNKNOWN';
+  const winLoss: PublicResult['win_loss'] = VALID_WIN_LOSS.includes(winLossRaw as PublicResult['win_loss']) ? (winLossRaw as PublicResult['win_loss']) : 'UNKNOWN';
+
   const awayRuns1st = (row as LiveResult).away_runs_1st;
   const homeRuns1st = (row as LiveResult).home_runs_1st;
   const firstInningNote = typeof awayRuns1st === 'number' && typeof homeRuns1st === 'number'
     ? `1st inning: ${awayRuns1st}-${homeRuns1st}`
     : undefined;
-  const note = (row as PublicResult).note ?? firstInningNote;
+
   return {
-    date: (row as LiveResult).date ?? (row as PublicResult).date ?? new Date().toISOString().slice(0,10),
+    date: (row as LiveResult).date ?? (row as PublicResult).date ?? new Date().toISOString().slice(0, 10),
     game: (row as LiveResult).game ?? (row as PublicResult).game ?? (row as LiveResult).game_id ?? 'Unknown game',
     posted_label: (row as PublicResult).posted_label ?? 'Model board',
     model_lean: lean,
-    result: ['NRFI', 'YRFI', 'PENDING', 'UNKNOWN'].includes(result) ? result as PublicResult['result'] : 'UNKNOWN',
-    win_loss: winLoss as PublicResult['win_loss'],
-    note,
+    result,
+    win_loss: winLoss,
+    note: (row as PublicResult).note ?? firstInningNote,
   };
 }
 
