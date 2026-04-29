@@ -6,11 +6,7 @@ from pathlib import Path
 
 from first_inning_lab.data_sources.mlb_stats_api import get_schedule
 from first_inning_lab.data_sources.weather_client import get_game_weather
-from first_inning_lab.features.certainty_features import build_certainty_features
-from first_inning_lab.features.matchup_features import combine_game_features
-from first_inning_lab.features.offense_features import build_offense_features
-from first_inning_lab.features.park_weather_features import build_park_weather_features
-from first_inning_lab.features.pitcher_features import build_pitcher_features
+from first_inning_lab.features.assemble_game_features import assemble_game_features
 from first_inning_lab.modeling.baseline_rules_model import predict_baseline
 from first_inning_lab.storage.json_store import atomic_write_json, read_json
 from first_inning_lab.utils.dates import today_et
@@ -47,18 +43,12 @@ def run(date: str):
     for game in games:
         park = parks.get(str(game.get("venue_id")))
         weather = get_game_weather((park or {}).get("latitude"), (park or {}).get("longitude"), game.get("start_time") or "")
-        away_pitcher = build_pitcher_features(game.get("away_probable_pitcher_id"), game.get("away_probable_pitcher"), int(date[:4]), date)
-        home_pitcher = build_pitcher_features(game.get("home_probable_pitcher_id"), game.get("home_probable_pitcher"), int(date[:4]), date)
-        away_offense = build_offense_features(game.get("away_team_id"), game.get("away_team") or "Unknown", None, None, int(date[:4]), date)
-        home_offense = build_offense_features(game.get("home_team_id"), game.get("home_team") or "Unknown", None, None, int(date[:4]), date)
-        park_weather = build_park_weather_features(game, parks, weather)
-        certainty = build_certainty_features(game, away_pitcher, home_pitcher, away_offense, home_offense, weather)
-        matchup = combine_game_features(game, away_pitcher, home_pitcher, away_offense, home_offense, park_weather, certainty)
-        pred = predict_baseline(matchup)
+        assembled = assemble_game_features(game, int(date[:4]), parks, weather)
+        pred = predict_baseline(assembled)
         pred["game_id"] = game.get("game_id")
-        pred["board_status"] = certainty.get("board_status")
+        pred["board_status"] = "FINAL_BOARD" if assembled["feature_status"].get("lineups_confirmed") else "EARLY_BOARD"
         preds.append(pred)
-        statuses.append(certainty.get("board_status"))
+        statuses.append(pred["board_status"])
     avg_quality = (sum(float(p.get("data_quality_score", 0.5)) for p in preds) / len(preds)) if preds else None
     summary = {
         "games": len(games),

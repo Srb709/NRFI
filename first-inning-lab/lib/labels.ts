@@ -17,12 +17,12 @@ export function getPublicLabel(prediction: Prediction): string {
   const warningCount = warnings.length;
 
   if (prediction.lean === 'PASS') return 'Pass';
-  if (nrfi_probability >= 0.64 && warningCount <= 1) return 'Lab Favorite';
-  if (nrfi_probability >= 0.60) return 'Clean First Frame';
-  if (nrfi_probability >= 0.56) return 'Quiet Inning Candidate';
-  if (nrfi_probability >= 0.52) return 'Slight Lean';
-  if (yrfi_probability >= 0.61) return 'YRFI Smoke';
-  if (yrfi_probability >= 0.56) return warningCount >= 2 ? 'Chaos Zone' : 'Trap Watch';
+  if (typeof nrfi_probability === "number" && nrfi_probability >= 0.64 && warningCount <= 1) return 'Lab Favorite';
+  if (typeof nrfi_probability === "number" && nrfi_probability >= 0.60) return 'Clean First Frame';
+  if (typeof nrfi_probability === "number" && nrfi_probability >= 0.56) return 'Quiet Inning Candidate';
+  if (typeof nrfi_probability === "number" && nrfi_probability >= 0.52) return 'Slight Lean';
+  if (typeof yrfi_probability === "number" && yrfi_probability >= 0.61) return 'YRFI Smoke';
+  if (typeof yrfi_probability === "number" && yrfi_probability >= 0.56) return warningCount >= 2 ? 'Chaos Zone' : 'Trap Watch';
   return warningCount >= 2 ? 'Stay Away Spot' : 'Pass';
 }
 
@@ -39,6 +39,6 @@ export function getLeanDisplay(lean: Lean): string {
   return 'Pass spot';
 }
 
-export function formatProbability(value: number): string {
-  return `${Math.round(value * 100)}%`;
+export function formatProbability(value?: number | null): string {
+  return typeof value === "number" ? `${Math.round(value * 100)}%` : "n/a";
 }
