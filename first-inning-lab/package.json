@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed:demo": "node -e \"console.log('Demo data already seeded in /data')\""
+    "seed:demo": "node -e \"console.log('Demo data already seeded in /data')\"",
+    "python:today": "cd python && python -m first_inning_lab.pipelines.build_today_board",
+    "python:grade": "cd python && python -m first_inning_lab.pipelines.grade_first_innings",
+    "python:history": "cd python && python -m first_inning_lab.pipelines.build_historical_first_inning_dataset",
+    "python:backtest": "cd python && python -m first_inning_lab.pipelines.backtest_baseline"
   },
   "dependencies": {
     "next": "14.2.33",

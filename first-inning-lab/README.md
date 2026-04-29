@@ -35,3 +35,6 @@ Demo-only data, no live MLB ingestion, simple baseline model.
 
 ## Next steps
 Live data ingestion, historical backtests, scheduled jobs, and auth.
+
+## Free local data engine
+Use python pipelines under `python/first_inning_lab/pipelines`.
