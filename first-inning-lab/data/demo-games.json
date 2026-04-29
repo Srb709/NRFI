@@ -1,90 +1,12 @@
 [
-  {
-    "game_id": "g1",
-    "game": "NYY @ BOS",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "NYY",
-    "home_team": "BOS",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g2",
-    "game": "LAD @ SF",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "LAD",
-    "home_team": "SF",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g3",
-    "game": "CHC @ STL",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "CHC",
-    "home_team": "STL",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g4",
-    "game": "ATL @ PHI",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "ATL",
-    "home_team": "PHI",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g5",
-    "game": "SEA @ HOU",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "SEA",
-    "home_team": "HOU",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g6",
-    "game": "TEX @ OAK",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "TEX",
-    "home_team": "OAK",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g7",
-    "game": "NYM @ MIA",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "NYM",
-    "home_team": "MIA",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  },
-  {
-    "game_id": "g8",
-    "game": "CLE @ DET",
-    "start_time": "2026-04-29T23:10:00Z",
-    "away_team": "CLE",
-    "home_team": "DET",
-    "away_pitcher": "Starter A",
-    "home_pitcher": "Starter B",
-    "status": "Scheduled",
-    "is_demo": true
-  }
+  {"game_id":"D001","game":"Metro Caps @ Harbor Foxes (DEMO)","game_date":"2026-06-15","start_time":"1:05 PM ET","away_team":"Metro Caps","home_team":"Harbor Foxes","venue":"Demo Park One","away_pitcher":"A. Sloan","home_pitcher":"D. Rivas","status":"Scheduled"},
+  {"game_id":"D002","game":"Coastal Owls @ Inland Jets (DEMO)","game_date":"2026-06-15","start_time":"1:20 PM ET","away_team":"Coastal Owls","home_team":"Inland Jets","away_pitcher":"M. Lowe","home_pitcher":"T. Cain","status":"Scheduled"},
+  {"game_id":"D003","game":"Iron Bears @ Valley Kings (DEMO)","game_date":"2026-06-15","start_time":"2:10 PM ET","away_team":"Iron Bears","home_team":"Valley Kings","away_pitcher":"R. Pike","home_pitcher":"J. Moss","status":"Scheduled"},
+  {"game_id":"D004","game":"Union Stars @ Bay Pilots (DEMO)","game_date":"2026-06-15","start_time":"3:05 PM ET","away_team":"Union Stars","home_team":"Bay Pilots","away_pitcher":"K. Yates","home_pitcher":"S. Vale","status":"Scheduled"},
+  {"game_id":"D005","game":"Lakeside Comets @ Ridge Wolves (DEMO)","game_date":"2026-06-15","start_time":"4:10 PM ET","away_team":"Lakeside Comets","home_team":"Ridge Wolves","away_pitcher":"P. Drew","home_pitcher":"N. Hale","status":"Scheduled"},
+  {"game_id":"D006","game":"Desert Fox @ Snow Hawks (DEMO)","game_date":"2026-06-15","start_time":"6:40 PM ET","away_team":"Desert Fox","home_team":"Snow Hawks","away_pitcher":"F. Kim","home_pitcher":"C. Olin","status":"Scheduled"},
+  {"game_id":"D007","game":"Crown Tide @ Prairie Suns (DEMO)","game_date":"2026-06-15","start_time":"7:05 PM ET","away_team":"Crown Tide","home_team":"Prairie Suns","away_pitcher":"B. Webb","home_pitcher":"E. Ross","status":"Scheduled"},
+  {"game_id":"D008","game":"Canyon Rockets @ North Forge (DEMO)","game_date":"2026-06-15","start_time":"7:15 PM ET","away_team":"Canyon Rockets","home_team":"North Forge","away_pitcher":"L. Pike","home_pitcher":"O. Kane","status":"Scheduled"},
+  {"game_id":"D009","game":"River Lights @ Summit Arrows (DEMO)","game_date":"2026-06-15","start_time":"8:10 PM ET","away_team":"River Lights","home_team":"Summit Arrows","away_pitcher":"H. Wolfe","home_pitcher":"G. Quinn","status":"Scheduled"},
+  {"game_id":"D010","game":"Steel Atlas @ Garden Fleet (DEMO)","game_date":"2026-06-15","start_time":"9:40 PM ET","away_team":"Steel Atlas","home_team":"Garden Fleet","away_pitcher":"D. Gray","home_pitcher":"I. Knox","status":"Scheduled"}
 ]
