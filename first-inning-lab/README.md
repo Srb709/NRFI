@@ -1,40 +1,34 @@
 # First Inning Lab
-Model-based first-inning baseball analytics demo dashboard.
 
-## What this is
-A local demo for NRFI/YRFI board generation, risk notes, content drafting, and public record tracking.
+Local NRFI/YRFI model board and tracker dashboard.
 
-## What this is not
-Not betting advice, not guaranteed outcomes, no auto-posting, and no bet placement.
-
-## Local setup
+## Local workflow
+1. Pull latest code:
 ```bash
-cd first-inning-lab
-npm install
-npm run dev
+git pull
 ```
-Open:
-- http://localhost:3000
-- http://localhost:3000/admin
-- http://localhost:3000/tracker
-
-## Python
+2. Python setup:
 ```bash
 cd first-inning-lab/python
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest -q
 ```
+3. Build today's board:
+```bash
+python -m first_inning_lab.pipelines.build_today_board
+```
+4. Grade first innings:
+```bash
+python -m first_inning_lab.pipelines.grade_first_innings
+```
+5. Start dashboard:
+```bash
+cd ..
+npm run dev
+```
+6. Open:
+- http://localhost:3000/admin
+- http://localhost:3000/tracker
 
-## Troubleshooting
-If demo JSON files fail to load, server falls back to bundled demo imports.
-
-## Current limitations
-Demo-only data, no live MLB ingestion, simple baseline model.
-
-## Next steps
-Live data ingestion, historical backtests, scheduled jobs, and auth.
-
-## Free local data engine
-Use python pipelines under `python/first_inning_lab/pipelines`.
+Dashboard reads live local files first, then falls back to demo mode if live files are missing. Early board is not final board; missing data lowers confidence, and PASS is a valid output. No paid APIs or sportsbook scraping are used.

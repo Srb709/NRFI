@@ -20,10 +20,10 @@ def predict_baseline(input_features: dict) -> dict:
 
     if c < 0.45:
         lean = "PASS"
-        warnings.append("Forced PASS: low data quality.")
+        warnings.append("Low data quality; forced PASS.")
     if not input_features.get("starters_confirmed_or_probable", False):
         lean = "PASS"
-        warnings.append("Forced PASS: missing probable starters.")
+        warnings.append("Missing probable pitcher; forced PASS.")
     if "precipitation_delay_risk" in input_features.get("weather_flags", []):
         lean = "PASS"
         warnings.append("Weather delay risk flag present.")
@@ -34,7 +34,12 @@ def predict_baseline(input_features: dict) -> dict:
 
     max_prob = max(nrfi_probability, yrfi_probability)
     confidence_tier = "PASS" if lean == "PASS" else ("A" if max_prob >= 0.62 else ("B" if max_prob >= 0.58 else "C"))
-    if (not input_features.get("lineups_confirmed", False)) or (not input_features.get("advanced_stats_available", False)):
+    if not input_features.get("lineups_confirmed", False):
+        warnings.append("Lineups unconfirmed")
+        if confidence_tier == "A":
+            confidence_tier = "B"
+    if not input_features.get("advanced_stats_available", False):
+        warnings.append("Advanced stats unavailable, neutral fallback used")
         if confidence_tier == "A":
             confidence_tier = "B"
     if input_features.get("bullpen_or_opener_risk", False) and confidence_tier == "A":
@@ -43,7 +48,7 @@ def predict_baseline(input_features: dict) -> dict:
     public_label = "Pass"
     if lean == "NRFI":
         major_missing = any("missing" in w.lower() or "forced pass" in w.lower() for w in warnings)
-        if c >= 0.75 and input_features.get("starters_confirmed_or_probable", False) and not major_missing and confidence_tier == "A":
+        if c >= 0.75 and input_features.get("advanced_stats_available", False) and input_features.get("starters_confirmed_or_probable", False) and not major_missing and confidence_tier == "A":
             public_label = "Lab Favorite"
         else:
             public_label = "Clean First Frame" if confidence_tier in ("A", "B") else "Quiet Inning Candidate"
