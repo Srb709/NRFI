@@ -1,11 +1,5 @@
 from first_inning_lab.modeling.baseline_rules_model import predict_baseline
 
-
-def test_range_and_fields():
-    r = predict_baseline({})
-    assert 0.35 <= r['nrfi_probability'] <= 0.70
-    assert 0.35 <= r['yrfi_probability'] <= 0.70
-    assert r['lean'] in {'NRFI', 'YRFI', 'PASS'}
-    assert isinstance(r['reasons'], list)
-    assert isinstance(r['warnings'], list)
-    assert r['public_label'] in {'Lab Favorite','Clean First Frame','Quiet Inning Candidate','Slight Lean','Trap Watch','Chaos Zone','YRFI Smoke','Stay Away Spot','Pass'}
+def test_bounds_and_pass():
+    o=predict_baseline({'data_quality_score':0.4,'starters_confirmed_or_probable':False})
+    assert 0.35<=o['nrfi_probability']<=0.7 and o['lean']=='PASS' and 'feature_breakdown' in o

@@ -1,1 +1,4 @@
-# scaffold
+def combine_game_features(game, away_pitcher, home_pitcher, away_offense, home_offense, park_weather, certainty):
+    warnings=away_pitcher['warnings']+home_pitcher['warnings']+away_offense['warnings']+home_offense['warnings']+park_weather['warnings']+certainty['warnings']
+    reasons=away_pitcher['reasons']+home_pitcher['reasons']+away_offense['reasons']+home_offense['reasons']+park_weather['reasons']+certainty['reasons']
+    return {'game_id':game['game_id'],'pitcher_safety_score':(away_pitcher['pitcher_safety_score']+home_pitcher['pitcher_safety_score'])/2,'offense_danger_score':(away_offense['offense_danger_score']+home_offense['offense_danger_score'])/2,'park_weather_score':park_weather['park_weather_score'],'certainty_score':certainty['data_quality_score'],'data_quality_score':certainty['data_quality_score'],'recent_form_score':0.5,'warnings':warnings,'reasons':reasons,'lineups_confirmed':certainty['lineups_confirmed'],'starters_confirmed_or_probable':certainty['starters_confirmed_or_probable'],'bullpen_or_opener_risk':certainty['bullpen_or_opener_risk'],'weather_flags':park_weather.get('flags',[])}
