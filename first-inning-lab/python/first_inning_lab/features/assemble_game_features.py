@@ -37,8 +37,8 @@ def assemble_game_features(game: dict, season: int, parks: dict, weather: dict) 
 
     away_p = get_pitcher_stats(game.get("away_probable_pitcher_id"), game.get("away_probable_pitcher"), season)
     home_p = get_pitcher_stats(game.get("home_probable_pitcher_id"), game.get("home_probable_pitcher"), season)
-    away_o = get_team_offense_stats(game.get("away_team"), season)
-    home_o = get_team_offense_stats(game.get("home_team"), season)
+    away_o = get_team_offense_stats(game.get("away_team_id"), game.get("away_team"), season)
+    home_o = get_team_offense_stats(game.get("home_team_id"), game.get("home_team"), season)
     lineup = get_lineup_data(game.get("game_pk") or game.get("game_id"))
     park_weather = build_park_weather_features(game, parks, weather)
 

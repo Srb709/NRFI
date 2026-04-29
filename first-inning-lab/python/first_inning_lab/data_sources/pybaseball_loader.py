@@ -9,14 +9,14 @@ def dependency_available(package_name: str) -> bool:
 
 def _safe_pybaseball_call(callable_name: str, *args, **kwargs):
     if not dependency_available("pybaseball"):
-        return []
+        return {"available": False, "data": [], "warning": "pybaseball not installed."}
     try:
         import pybaseball as pb
 
         fn = getattr(pb, callable_name)
-        return fn(*args, **kwargs)
-    except Exception:
-        return []
+        return {"available": True, "data": fn(*args, **kwargs), "warning": None}
+    except Exception as exc:
+        return {"available": False, "data": [], "warning": f"pybaseball call failed: {exc.__class__.__name__}"}
 
 
 def get_pitching_stats_for_season(season: int):
