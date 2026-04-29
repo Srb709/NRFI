@@ -26,6 +26,93 @@ def _build_url(path: str, params: dict[str, Any] | None = None) -> str:
     return f"{BASE}{path}" + (f"?{query}" if query else "")
 
 
+def _to_number(value: Any) -> float | int | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    try:
+        text = str(value)
+        return float(text) if "." in text else int(text)
+    except Exception:
+        return None
+
+
+def _normalized_split(payload: dict[str, Any]) -> dict[str, Any] | None:
+    stats = payload.get("stats") or []
+    if stats and isinstance(stats[0], dict):
+        splits = stats[0].get("splits") or []
+        if splits and isinstance(splits[0], dict):
+            return splits[0].get("stat") or {}
+    people = payload.get("people") or []
+    if people and isinstance(people[0], dict):
+        pstats = people[0].get("stats") or []
+        if pstats and isinstance(pstats[0], dict):
+            splits = pstats[0].get("splits") or []
+            if splits and isinstance(splits[0], dict):
+                return splits[0].get("stat") or {}
+    return None
+
+
+def _normalize_player_stat(stat: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "gamesPlayed": _to_number(stat.get("gamesPlayed") or stat.get("games")),
+        "gamesStarted": _to_number(stat.get("gamesStarted") or stat.get("gs")),
+        "inningsPitched": _to_number(stat.get("inningsPitched") or stat.get("ip")),
+        "era": _to_number(stat.get("era")),
+        "whip": _to_number(stat.get("whip")),
+        "strikeOuts": _to_number(stat.get("strikeOuts") or stat.get("so")),
+        "baseOnBalls": _to_number(stat.get("baseOnBalls") or stat.get("bb")),
+        "homeRuns": _to_number(stat.get("homeRuns") or stat.get("hr")),
+        "battersFaced": _to_number(stat.get("battersFaced") or stat.get("bf")),
+        "numberOfPitches": _to_number(stat.get("numberOfPitches") or stat.get("np")),
+    }
+
+
+def _normalize_team_stat(stat: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "gamesPlayed": _to_number(stat.get("gamesPlayed") or stat.get("g")),
+        "runs": _to_number(stat.get("runs") or stat.get("r")),
+        "plateAppearances": _to_number(stat.get("plateAppearances") or stat.get("pa")),
+        "hits": _to_number(stat.get("hits") or stat.get("h")),
+        "doubles": _to_number(stat.get("doubles") or stat.get("2b")),
+        "triples": _to_number(stat.get("triples") or stat.get("3b")),
+        "homeRuns": _to_number(stat.get("homeRuns") or stat.get("hr")),
+        "baseOnBalls": _to_number(stat.get("baseOnBalls") or stat.get("bb")),
+        "strikeOuts": _to_number(stat.get("strikeOuts") or stat.get("so")),
+        "obp": _to_number(stat.get("obp")),
+        "slg": _to_number(stat.get("slg")),
+        "ops": _to_number(stat.get("ops")),
+    }
+
+
+def get_player_season_stats(person_id: int, season: int, group: str) -> dict[str, Any]:
+    urls = [
+        _build_url(f"/people/{person_id}/stats", {"stats": "season", "group": group, "season": season}),
+        _build_url(f"/people/{person_id}", {"hydrate": f"stats(group=[{group}],type=[season],season={season})"}),
+        _build_url("/stats", {"stats": "season", "group": group, "personId": person_id, "season": season}),
+    ]
+    for url in urls:
+        payload = safe_get_json(url)
+        split = _normalized_split(payload)
+        if split:
+            return {"available": True, "source": "mlb_stats_api", "raw": split, "stats": _normalize_player_stat(split)}
+    return {"available": False, "source": "unavailable", "raw": {}, "stats": {}}
+
+
+def get_team_season_stats(team_id: int, season: int, group: str) -> dict[str, Any]:
+    urls = [
+        _build_url("/stats", {"stats": "season", "group": group, "teamId": team_id, "season": season}),
+        _build_url(f"/teams/{team_id}/stats", {"stats": "season", "group": group, "season": season}),
+    ]
+    for url in urls:
+        payload = safe_get_json(url)
+        split = _normalized_split(payload)
+        if split:
+            return {"available": True, "source": "mlb_stats_api", "raw": split, "stats": _normalize_team_stat(split)}
+    return {"available": False, "source": "unavailable", "raw": {}, "stats": {}}
+
+
 def normalize_game(raw_game: dict[str, Any]) -> dict[str, Any]:
     teams = raw_game.get("teams", {})
     away = teams.get("away", {})
@@ -34,27 +121,7 @@ def normalize_game(raw_game: dict[str, Any]) -> dict[str, Any]:
     home_team = home.get("team", {}).get("name")
     away_probable_pitcher = away.get("probablePitcher", {}).get("fullName")
     home_probable_pitcher = home.get("probablePitcher", {}).get("fullName")
-    return {
-        "game_id": str(raw_game.get("gamePk", "")),
-        "game_pk": raw_game.get("gamePk"),
-        "game_date": (raw_game.get("gameDate") or "")[:10],
-        "start_time": raw_game.get("gameDate"),
-        "away_team": away_team,
-        "home_team": home_team,
-        "game": f"{away_team or 'Away'} @ {home_team or 'Home'}",
-        "away_team_id": away.get("team", {}).get("id"),
-        "home_team_id": home.get("team", {}).get("id"),
-        "venue": raw_game.get("venue", {}).get("name"),
-        "venue_id": raw_game.get("venue", {}).get("id"),
-        "status": raw_game.get("status", {}).get("detailedState", "Unknown"),
-        "away_probable_pitcher": away_probable_pitcher,
-        "home_probable_pitcher": home_probable_pitcher,
-        "away_pitcher": away_probable_pitcher or "TBD",
-        "home_pitcher": home_probable_pitcher or "TBD",
-        "away_probable_pitcher_id": away.get("probablePitcher", {}).get("id"),
-        "home_probable_pitcher_id": home.get("probablePitcher", {}).get("id"),
-        "source": "mlb_stats_api",
-    }
+    return {"game_id": str(raw_game.get("gamePk", "")), "game_pk": raw_game.get("gamePk"), "game_date": (raw_game.get("gameDate") or "")[:10], "start_time": raw_game.get("gameDate"), "away_team": away_team, "home_team": home_team, "game": f"{away_team or 'Away'} @ {home_team or 'Home'}", "away_team_id": away.get("team", {}).get("id"), "home_team_id": home.get("team", {}).get("id"), "venue": raw_game.get("venue", {}).get("name"), "venue_id": raw_game.get("venue", {}).get("id"), "status": raw_game.get("status", {}).get("detailedState", "Unknown"), "away_probable_pitcher": away_probable_pitcher, "home_probable_pitcher": home_probable_pitcher, "away_pitcher": away_probable_pitcher or "TBD", "home_pitcher": home_probable_pitcher or "TBD", "away_probable_pitcher_id": away.get("probablePitcher", {}).get("id"), "home_probable_pitcher_id": home.get("probablePitcher", {}).get("id"), "source": "mlb_stats_api"}
 
 
 def get_schedule(date: str) -> list[dict[str, Any]]:
@@ -82,14 +149,7 @@ def get_boxscore(game_pk: int | str) -> dict[str, Any]:
 def get_first_inning_result(game_pk: int | str) -> dict[str, Any]:
     linescore = get_linescore(game_pk)
     innings = linescore.get("innings") or []
-    result = {
-        "game_pk": int(game_pk),
-        "away_runs_1st": None,
-        "home_runs_1st": None,
-        "total_runs_1st": None,
-        "result": "UNKNOWN",
-        "graded": False,
-    }
+    result = {"game_pk": int(game_pk), "away_runs_1st": None, "home_runs_1st": None, "total_runs_1st": None, "result": "UNKNOWN", "graded": False}
     if not innings:
         return result
     first = innings[0] if isinstance(innings[0], dict) else {}
