@@ -30,20 +30,27 @@ def normalize_game(raw_game: dict[str, Any]) -> dict[str, Any]:
     teams = raw_game.get("teams", {})
     away = teams.get("away", {})
     home = teams.get("home", {})
+    away_team = away.get("team", {}).get("name")
+    home_team = home.get("team", {}).get("name")
+    away_probable_pitcher = away.get("probablePitcher", {}).get("fullName")
+    home_probable_pitcher = home.get("probablePitcher", {}).get("fullName")
     return {
         "game_id": str(raw_game.get("gamePk", "")),
         "game_pk": raw_game.get("gamePk"),
         "game_date": (raw_game.get("gameDate") or "")[:10],
         "start_time": raw_game.get("gameDate"),
-        "away_team": away.get("team", {}).get("name"),
-        "home_team": home.get("team", {}).get("name"),
+        "away_team": away_team,
+        "home_team": home_team,
+        "game": f"{away_team or 'Away'} @ {home_team or 'Home'}",
         "away_team_id": away.get("team", {}).get("id"),
         "home_team_id": home.get("team", {}).get("id"),
         "venue": raw_game.get("venue", {}).get("name"),
         "venue_id": raw_game.get("venue", {}).get("id"),
         "status": raw_game.get("status", {}).get("detailedState", "Unknown"),
-        "away_probable_pitcher": away.get("probablePitcher", {}).get("fullName"),
-        "home_probable_pitcher": home.get("probablePitcher", {}).get("fullName"),
+        "away_probable_pitcher": away_probable_pitcher,
+        "home_probable_pitcher": home_probable_pitcher,
+        "away_pitcher": away_probable_pitcher or "TBD",
+        "home_pitcher": home_probable_pitcher or "TBD",
         "away_probable_pitcher_id": away.get("probablePitcher", {}).get("id"),
         "home_probable_pitcher_id": home.get("probablePitcher", {}).get("id"),
         "source": "mlb_stats_api",
