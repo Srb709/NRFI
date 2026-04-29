@@ -18,3 +18,10 @@ data/processed/cache/*
 
 data/cache/**/*.json
 !data/cache/**/.gitkeep
+
+data/live/*.json
+!data/live/.gitkeep
+
+data/historical/first_inning_results.csv
+data/historical/first_inning_results.json
+data/historical/historical_build_metadata.json

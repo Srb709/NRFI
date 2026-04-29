@@ -47,6 +47,8 @@ def run(date: str):
     priced = [p for p in preds if p.get("probability_available")]
     miss_pitcher = sum(1 for p in preds if not p.get("feature_status", {}).get("pitcher_stats_available"))
     miss_offense = sum(1 for p in preds if not p.get("feature_status", {}).get("team_offense_stats_available"))
+    miss_park = sum(1 for p in preds if not p.get("feature_status", {}).get("park_factor_available"))
+    miss_coords = sum(1 for p in preds if not p.get("feature_status", {}).get("stadium_coordinates_available"))
     weather_unavail = sum(1 for p in preds if not p.get("feature_status", {}).get("weather_available"))
     lineup_unconfirmed = sum(1 for p in preds if not p.get("feature_status", {}).get("lineups_confirmed"))
     prev_pitcher = sum(1 for p in preds if any("Current-season pitcher sample unavailable; previous-season MLB sample used." == w for w in p.get("warnings", [])))
@@ -61,6 +63,8 @@ def run(date: str):
     print(f"Unpriced games: {len(preds) - len(priced)}")
     print(f"Missing pitcher stats: {miss_pitcher}")
     print(f"Missing team offense stats: {miss_offense}")
+    print(f"Missing park factor: {miss_park}")
+    print(f"Missing stadium coordinates: {miss_coords}")
     print(f"Weather unavailable: {weather_unavail}")
     print(f"Lineups unconfirmed: {lineup_unconfirmed}")
     print(f"Previous-season pitcher samples used: {prev_pitcher}")

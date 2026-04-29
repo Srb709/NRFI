@@ -50,8 +50,8 @@ def test_feature_assembler_availability(monkeypatch):
     monkeypatch.setattr(agf, "get_pitcher_stats", lambda *a, **k: {"available": True, "features": {"era": 3, "whip": 1.1}, "warnings": []})
     monkeypatch.setattr(agf, "get_team_offense_stats", lambda *a, **k: {"available": True, "features": {"ops": 0.75, "runs_per_game": 4.8}, "warnings": []})
     monkeypatch.setattr(agf, "get_lineup_data", lambda *_a, **_k: {"lineups_confirmed": True, "warnings": []})
-    monkeypatch.setattr(agf, "build_park_weather_features", lambda *_a, **_k: {"park_weather_score": 0.5, "park_factor_available": True})
-    out = agf.assemble_game_features({"game_id":"1","game_pk":1,"away_probable_pitcher":"a","home_probable_pitcher":"h","away_probable_pitcher_id":1,"home_probable_pitcher_id":2,"away_team_id":1,"home_team_id":2}, 2026, {}, {"source":"ok"})
+    monkeypatch.setattr(agf, "build_park_weather_features", lambda *_a, **_k: {"park_weather_score": 0.5, "park_factor_available": True, "stadium_coordinates_available": True})
+    out = agf.assemble_game_features({"game_id":"1","game_pk":1,"away_probable_pitcher":"a","home_probable_pitcher":"h","away_probable_pitcher_id":1,"home_probable_pitcher_id":2,"away_team_id":1,"home_team_id":2}, 2026, {}, {"source":"ok","available":True})
     assert out["feature_status"]["pitcher_stats_available"] and out["feature_status"]["team_offense_stats_available"]
     priced = predict_baseline(out)
     assert priced["probability_available"]
@@ -61,15 +61,15 @@ def test_pybaseball_failure_not_blocking(monkeypatch):
     monkeypatch.setattr(agf, "get_pitcher_stats", lambda *a, **k: {"available": True, "features": {"era": 3, "whip": 1.1}, "warnings": ["pybaseball call failed: HTTPError"]})
     monkeypatch.setattr(agf, "get_team_offense_stats", lambda *a, **k: {"available": True, "features": {"ops": 0.75, "runs_per_game": 4.8}, "warnings": []})
     monkeypatch.setattr(agf, "get_lineup_data", lambda *_a, **_k: {"lineups_confirmed": True, "warnings": []})
-    monkeypatch.setattr(agf, "build_park_weather_features", lambda *_a, **_k: {"park_weather_score": 0.5, "park_factor_available": True})
-    out = agf.assemble_game_features({"game_id":"1","game_pk":1,"away_probable_pitcher":"a","home_probable_pitcher":"h","away_probable_pitcher_id":1,"home_probable_pitcher_id":2,"away_team_id":1,"home_team_id":2}, 2026, {}, {"source":"ok"})
+    monkeypatch.setattr(agf, "build_park_weather_features", lambda *_a, **_k: {"park_weather_score": 0.5, "park_factor_available": True, "stadium_coordinates_available": True})
+    out = agf.assemble_game_features({"game_id":"1","game_pk":1,"away_probable_pitcher":"a","home_probable_pitcher":"h","away_probable_pitcher_id":1,"home_probable_pitcher_id":2,"away_team_id":1,"home_team_id":2}, 2026, {}, {"source":"ok","available":True})
     assert predict_baseline(out)["probability_available"]
 
 
 def test_cli_summary_counts(monkeypatch, capsys):
     monkeypatch.setattr(build_today_board, "get_schedule", lambda _d: [{"game_id":"1","game_pk":1,"venue_id":1,"start_time":"2026-04-29T00:00:00Z","away_team":"A","home_team":"B"}])
     monkeypatch.setattr(build_today_board, "read_json", lambda *a, **k: [{"venue_id":1,"latitude":1,"longitude":1}])
-    monkeypatch.setattr(build_today_board, "get_game_weather", lambda *a, **k: {"source":"ok"})
+    monkeypatch.setattr(build_today_board, "get_game_weather", lambda *a, **k: {"source":"ok","available":True})
     monkeypatch.setattr(build_today_board, "assemble_game_features", lambda *a, **k: {"feature_status":{"lineups_confirmed":False,"pitcher_stats_available":False,"team_offense_stats_available":False,"weather_available":False},"data_quality_score":0.4,"real_features":{},"warnings":[],"missing_data":[]})
     monkeypatch.setattr(build_today_board, "predict_baseline", lambda *a, **k: {"lean":"PASS","probability_available":False,"warnings":[],"feature_status":{"pitcher_stats_available":False,"team_offense_stats_available":False,"weather_available":False,"lineups_confirmed":False},"data_quality_score":0.4})
     build_today_board.run("2026-04-29")
