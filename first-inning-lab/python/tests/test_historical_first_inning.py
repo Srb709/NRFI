@@ -58,3 +58,88 @@ def test_model_uses_historical_venue_for_pricing():
 def test_model_blocks_without_park_or_venue():
     out = predict_baseline({"feature_status": {"probable_pitchers_available": True, "pitcher_stats_available": True, "team_offense_stats_available": True, "park_or_venue_signal_available": False, "lineups_confirmed": False}, "real_features": {"pitcher_safety_score": 0.6, "offense_danger_score": 0.4, "park_weather_score": None, "venue_first_inning_score": None}, "missing_data": [], "warnings": [], "data_quality_score": 0.8})
     assert out["pricing_readiness"] == "unpriced_missing_core_inputs"
+
+def _write_hist_csv(path, rows):
+    with path.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=["season","venue_id","total_runs_1st","nrfi_result","away_team_id","home_team_id","away_runs_1st","home_runs_1st","away_starting_pitcher_id","home_starting_pitcher_id"])
+        w.writeheader()
+        for row in rows:
+            w.writerow(row)
+
+
+def test_historical_season_fallback_to_prior(monkeypatch, tmp_path):
+    p = tmp_path / "first_inning_results.csv"
+    rows = [{"season": 2025, "venue_id": 1, "total_runs_1st": 1, "nrfi_result": False, "away_team_id": 10, "home_team_id": 11, "away_runs_1st": 1, "home_runs_1st": 0, "away_starting_pitcher_id": 50, "home_starting_pitcher_id": 51} for _ in range(120)]
+    _write_hist_csv(p, rows)
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+
+    lg = hff.get_league_first_inning_baseline(2026)
+    v = hff.get_venue_first_inning_factor(1, 2026)
+    assert lg["available"] is True
+    assert lg["requested_season"] == 2026
+    assert lg["used_season"] == 2025
+    assert lg["season_fallback_used"] is True
+    assert any("Using prior historical season 2025 for 2026 board." in x for x in lg["warnings"])
+    assert v["used_season"] == 2025
+    assert v["season_fallback_used"] is True
+
+
+def test_historical_season_no_fallback_when_requested_has_data(monkeypatch, tmp_path):
+    p = tmp_path / "first_inning_results.csv"
+    rows = [{"season": 2026, "venue_id": 1, "total_runs_1st": 1, "nrfi_result": False, "away_team_id": 10, "home_team_id": 11, "away_runs_1st": 1, "home_runs_1st": 0, "away_starting_pitcher_id": 50, "home_starting_pitcher_id": 51} for _ in range(120)]
+    _write_hist_csv(p, rows)
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+
+    lg = hff.get_league_first_inning_baseline(2026)
+    assert lg["available"] is True
+    assert lg["used_season"] == 2026
+    assert lg["season_fallback_used"] is False
+
+
+def test_historical_season_unavailable_without_prior(monkeypatch, tmp_path):
+    p = tmp_path / "first_inning_results.csv"
+    rows = [{"season": 2026, "venue_id": 1, "total_runs_1st": 0, "nrfi_result": True, "away_team_id": 10, "home_team_id": 11, "away_runs_1st": 0, "home_runs_1st": 0, "away_starting_pitcher_id": 50, "home_starting_pitcher_id": 51} for _ in range(10)]
+    _write_hist_csv(p, rows)
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+
+    lg = hff.get_league_first_inning_baseline(2027)
+    assert lg["available"] is False
+    assert lg["requested_season"] == 2027
+    assert lg["used_season"] == 2027
+    assert lg["season_fallback_used"] is False
+    assert any("below threshold" in x.lower() for x in lg["warnings"])
+
+
+def test_build_today_board_message_when_dataset_exists_below_threshold(monkeypatch, capsys):
+    from first_inning_lab.pipelines import build_today_board as btb
+
+    game = {"game_id": "1", "venue_id": 1, "start_time": "2026-04-29T23:00:00Z", "away_team": "A", "home_team": "B"}
+    monkeypatch.setattr(btb, "get_schedule", lambda _d: [game])
+    monkeypatch.setattr(btb, "read_json", lambda *a, **k: [{"venue_id": 1, "latitude": 1.0, "longitude": 1.0}])
+    monkeypatch.setattr(btb, "get_game_weather", lambda *a, **k: {"available": False})
+    monkeypatch.setattr(btb, "atomic_write_json", lambda *a, **k: None)
+    monkeypatch.setattr(
+        btb,
+        "assemble_game_features",
+        lambda *a, **k: {
+            "feature_status": {
+                "lineups_confirmed": False,
+                "probable_pitchers_available": True,
+                "pitcher_stats_available": True,
+                "team_offense_stats_available": True,
+                "park_factor_available": False,
+                "historical_venue_factor_available": False,
+                "park_or_venue_signal_available": False,
+                "weather_available": False,
+                "historical_first_inning_available": False,
+            },
+            "raw_features": {"historical_league": {"available": False, "warnings": ["Historical first-inning sample below threshold."]}},
+            "warnings": [],
+        },
+    )
+    monkeypatch.setattr(btb, "predict_baseline", lambda assembled: {"probability_available": False, "pricing_readiness": "unpriced", "feature_status": assembled["feature_status"], "data_quality_score": 0.0})
+
+    btb.run("2026-04-29")
+    out = capsys.readouterr().out
+    assert "run build_historical_first_inning_dataset" not in out
+    assert "Historical dataset below threshold: 1" in out
