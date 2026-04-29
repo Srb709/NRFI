@@ -1,0 +1,1 @@
+'use client'; export default function CopyButton({text}:{text:string}){return <button className='px-3 py-1 text-sm border border-zinc-700 rounded' onClick={()=>navigator.clipboard.writeText(text)}>Copy</button>}

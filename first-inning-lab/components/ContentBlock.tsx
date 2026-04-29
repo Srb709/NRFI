@@ -1,0 +1,1 @@
+import CopyButton from './CopyButton'; export default function ContentBlock({title,content}:{title:string;content:string}){return <div className='card'><div className='flex justify-between'><h4>{title}</h4><CopyButton text={content}/></div><pre className='whitespace-pre-wrap text-sm mt-2'>{content}</pre></div>}

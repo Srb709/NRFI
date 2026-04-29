@@ -1,0 +1,2 @@
+import Shell from '@/components/Shell';import Link from 'next/link';
+export default function Page(){return <Shell><h1 className='text-4xl font-bold'>The daily first-inning baseball lab.</h1><p className='mt-3 text-zinc-300'>NRFI/YRFI model boards, risk notes, public tracking. No locks. Just the board.</p><div className='flex gap-3 mt-4'><Link href='/tracker' className='card'>View Public Tracker</Link><Link href='/admin' className='card'>Open Admin Dashboard</Link></div></Shell>}
