@@ -28,6 +28,7 @@ def run(date: str):
         pred = predict_baseline(assembled)
         pred["game_id"] = game.get("game_id")
         pred["board_status"] = "FINAL_BOARD" if assembled["feature_status"].get("lineups_confirmed") else "EARLY_BOARD"
+        pred["raw_features"] = assembled.get("raw_features", {})
         preds.append(pred)
 
     live = _root() / "data/live"
@@ -54,10 +55,17 @@ def run(date: str):
     print(f"Missing park/venue signal: {sum(1 for x in fs if not x.get('park_or_venue_signal_available'))}")
     print(f"Weather unavailable: {sum(1 for x in fs if not x.get('weather_available'))}")
     print(f"Lineups unconfirmed: {sum(1 for x in fs if not x.get('lineups_confirmed'))}")
+    historical_rows = [p.get("raw_features", {}).get("historical_league", {}) for p in preds]
+    hist_dataset_missing = sum(1 for h in historical_rows if "Historical first-inning dataset unavailable." in (h.get("warnings") or []))
+    hist_below_threshold = sum(1 for h in historical_rows if h and not h.get("available") and "Historical first-inning dataset unavailable." not in (h.get("warnings") or []))
+    hist_fallback_used = sum(1 for h in historical_rows if h.get("season_fallback_used"))
     hist_missing = sum(1 for x in fs if not x.get('historical_first_inning_available'))
-    print(f"Historical first-inning dataset unavailable: {hist_missing}")
-    if hist_missing:
-        print("Historical first-inning dataset unavailable; run build_historical_first_inning_dataset.")
+    print(f"Historical first-inning unavailable (all causes): {hist_missing}")
+    print(f"Historical dataset file missing: {hist_dataset_missing}")
+    print(f"Historical dataset below threshold: {hist_below_threshold}")
+    print(f"Historical prior-season fallback used: {hist_fallback_used}")
+    if hist_dataset_missing:
+        print("Historical first-inning dataset file missing; run build_historical_first_inning_dataset.")
     print(f"Average data quality: {0 if avg_quality is None else round(avg_quality * 100)}%")
 
     if priced:
