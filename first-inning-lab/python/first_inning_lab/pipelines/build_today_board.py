@@ -45,7 +45,8 @@ def run(date: str):
     preds = []
     statuses = []
     for game in games:
-        weather = get_game_weather(None, None, game.get("start_time") or "")
+        park = parks.get(str(game.get("venue_id")))
+        weather = get_game_weather((park or {}).get("latitude"), (park or {}).get("longitude"), game.get("start_time") or "")
         away_pitcher = build_pitcher_features(game.get("away_probable_pitcher_id"), game.get("away_probable_pitcher"), int(date[:4]), date)
         home_pitcher = build_pitcher_features(game.get("home_probable_pitcher_id"), game.get("home_probable_pitcher"), int(date[:4]), date)
         away_offense = build_offense_features(game.get("away_team_id"), game.get("away_team") or "Unknown", None, None, int(date[:4]), date)
