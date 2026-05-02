@@ -58,6 +58,33 @@ def _select_rows_for_threshold(rows: list[dict], requested_season: int | None, m
     return [], requested_season, False, []
 
 
+def _select_entity_rows_for_threshold(
+    rows: list[dict],
+    requested_season: int | None,
+    min_size: int,
+    entity_label: str,
+    entity_filter,
+) -> tuple[list[dict], int | None, bool, list[str]]:
+    if requested_season is None:
+        entity_rows = [r for r in rows if entity_filter(r)]
+        return entity_rows, None, False, []
+
+    requested_entity_rows = [r for r in _rows_for_season(rows, requested_season) if entity_filter(r)]
+    if len(requested_entity_rows) >= min_size:
+        return requested_entity_rows, requested_season, False, []
+
+    available_seasons = sorted({int(r.get("season") or 0) for r in rows if (r.get("season") or "").strip() != ""})
+    prior_seasons = [s for s in available_seasons if s < requested_season]
+    for prior in reversed(prior_seasons):
+        prior_entity_rows = [r for r in _rows_for_season(rows, prior) if entity_filter(r)]
+        if len(prior_entity_rows) >= min_size:
+            return prior_entity_rows, prior, True, [f"Using prior historical season {prior} for {requested_season} {entity_label} factor."]
+
+    if requested_entity_rows:
+        return requested_entity_rows, requested_season, False, []
+    return [], requested_season, False, []
+
+
 def get_league_first_inning_baseline(season: int | None = None) -> dict:
     rows, warnings = _load_rows()
     rows, used_season, fallback_used, season_warnings = _select_rows_for_threshold(rows, season, LEAGUE_MIN_GAMES)
@@ -71,8 +98,9 @@ def get_league_first_inning_baseline(season: int | None = None) -> dict:
 
 def get_venue_first_inning_factor(venue_id: int, season: int | None = None) -> dict:
     rows, warnings = _load_rows()
-    rows, used_season, fallback_used, season_warnings = _select_rows_for_threshold(rows, season, VENUE_MIN_GAMES)
-    venue_rows = [r for r in rows if int(r.get("venue_id") or -1) == int(venue_id)]
+    venue_rows, used_season, fallback_used, season_warnings = _select_entity_rows_for_threshold(
+        rows, season, VENUE_MIN_GAMES, "venue", lambda r: int(r.get("venue_id") or -1) == int(venue_id)
+    )
     n = len(venue_rows)
     league = get_league_first_inning_baseline(season)
     if n < VENUE_MIN_GAMES or not league.get("available"):
@@ -87,8 +115,13 @@ def get_venue_first_inning_factor(venue_id: int, season: int | None = None) -> d
 
 def get_team_first_inning_profile(team_id: int, season: int | None = None) -> dict:
     rows, warnings = _load_rows()
-    rows, used_season, fallback_used, season_warnings = _select_rows_for_threshold(rows, season, TEAM_MIN_GAMES)
-    games = [r for r in rows if int(r.get("away_team_id") or -1) == team_id or int(r.get("home_team_id") or -1) == team_id]
+    games, used_season, fallback_used, season_warnings = _select_entity_rows_for_threshold(
+        rows,
+        season,
+        TEAM_MIN_GAMES,
+        "team",
+        lambda r: int(r.get("away_team_id") or -1) == team_id or int(r.get("home_team_id") or -1) == team_id,
+    )
     n = len(games)
     if n < TEAM_MIN_GAMES:
         return _with_season_meta({"available": False, "team_id": team_id, "sample_size": n, "first_inning_scoring_rate": None, "first_inning_allowed_rate": None, "avg_first_inning_runs_scored": None, "avg_first_inning_runs_allowed": None, "warnings": warnings + season_warnings + ["Historical first-inning sample below threshold."]}, season, used_season, fallback_used)
@@ -107,9 +140,16 @@ def get_team_first_inning_profile(team_id: int, season: int | None = None) -> di
 
 def get_pitcher_first_inning_profile(pitcher_id: int, season: int | None = None) -> dict:
     rows, warnings = _load_rows()
-    rows, used_season, fallback_used, season_warnings = _select_rows_for_threshold(rows, season, PITCHER_MIN_STARTS)
     starts = []
-    for r in rows:
+    starts_rows, used_season, fallback_used, season_warnings = _select_entity_rows_for_threshold(
+        rows,
+        season,
+        PITCHER_MIN_STARTS,
+        "pitcher",
+        lambda r: int(r.get("away_starting_pitcher_id") or -1) == pitcher_id
+        or int(r.get("home_starting_pitcher_id") or -1) == pitcher_id,
+    )
+    for r in starts_rows:
         if int(r.get("away_starting_pitcher_id") or -1) == pitcher_id:
             starts.append(float(r.get("home_runs_1st") or 0))
         if int(r.get("home_starting_pitcher_id") or -1) == pitcher_id:
