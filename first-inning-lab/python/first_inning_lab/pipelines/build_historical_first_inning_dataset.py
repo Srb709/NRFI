@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from first_inning_lab.data_sources.mlb_stats_api import get_game_feed, get_linescore, get_schedule
@@ -49,7 +49,7 @@ def _build_row(g: dict, ls: dict, feed: dict) -> dict | None:
     }
 
 
-def run(start: str, end: str, outdir: Path | None = None) -> dict:
+def run(start: str, end: str, outdir: Path | None = None, verbose: bool = True) -> dict:
     s = datetime.fromisoformat(start).date(); e = datetime.fromisoformat(end).date()
     outdir = outdir or (_root() / "data/historical")
     outdir.mkdir(parents=True, exist_ok=True)
@@ -57,9 +57,14 @@ def run(start: str, end: str, outdir: Path | None = None) -> dict:
     warnings: list[str] = []
     games_found = games_skipped = dates_processed = 0
     for d in _daterange(s, e):
+        day_found = 0
+        day_written = 0
+        if verbose:
+            print(f"Processing date: {d.isoformat()}")
         dates_processed += 1
         try:
             games = get_schedule(d.isoformat()) or []
+            day_found = len(games)
         except Exception as exc:
             warnings.append(f"{d.isoformat()}: schedule fetch failed ({exc}).")
             continue
@@ -89,6 +94,9 @@ def run(start: str, end: str, outdir: Path | None = None) -> dict:
                 games_skipped += 1
                 continue
             rows.append(row)
+            day_written += 1
+        if verbose:
+            print(f"  games found={day_found} written={day_written}")
     rows.sort(key=lambda x: (x.get("game_date"), x.get("game_pk")))
     csv_path = outdir / "first_inning_results.csv"
     json_path = outdir / "first_inning_results.json"
@@ -98,8 +106,10 @@ def run(start: str, end: str, outdir: Path | None = None) -> dict:
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader(); writer.writerows(rows)
     json_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    metadata = {"generated_at": datetime.utcnow().isoformat() + "Z", "start": start, "end": end, "dates_processed": dates_processed, "games_found": games_found, "games_written": len(rows), "games_skipped": games_skipped, "warnings_count": len(warnings), "warnings": warnings}
+    metadata = {"generated_at": datetime.now(timezone.utc).isoformat(), "start": start, "end": end, "dates_processed": dates_processed, "games_found": games_found, "games_written": len(rows), "games_skipped": games_skipped, "warnings_count": len(warnings), "warnings": warnings}
     meta_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    if verbose:
+        print(f"Historical build totals: dates={dates_processed} found={games_found} written={len(rows)} skipped={games_skipped}")
     return metadata
 
 
