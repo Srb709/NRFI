@@ -16,7 +16,9 @@
     "python:update-history": "cd python && python -m first_inning_lab.pipelines.update_historical_first_innings",
     "daily": "npm run python:update-history && npm run python:today && cd python && python -m first_inning_lab.pipelines.grade_first_innings",
     "morning": "npm run python:update-history && npm run python:today",
-    "night": "npm run python:grade"
+    "night": "npm run python:grade",
+    "python:half-inning-data": "cd python && python -m first_inning_lab.pipelines.build_half_inning_training_dataset",
+    "python:train-half-inning": "cd python && python -m first_inning_lab.pipelines.train_half_inning_model"
   },
   "dependencies": {
     "next": "14.2.33",
