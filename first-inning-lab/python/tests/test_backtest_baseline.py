@@ -60,3 +60,27 @@ def test_summary_math_and_output_files(monkeypatch, tmp_path):
     assert (tmp_path / "data/history/backtest_summary.json").exists()
     payload = json.loads((tmp_path / "data/history/backtest_summary.json").read_text())
     assert payload["total_games_tested"] == 3
+
+
+def test_bucket_details_and_calibration_math():
+    results = [
+        {"outcome": "W", "lean": "NRFI", "actual": "NRFI", "nrfi_probability": 0.66, "yrfi_probability": 0.34, "confidence_tier": "A", "probability_bucket": "65+", "board_type": "final_board", "data_quality_score": 0.8},
+        {"outcome": "L", "lean": "NRFI", "actual": "YRFI", "nrfi_probability": 0.67, "yrfi_probability": 0.33, "confidence_tier": "A", "probability_bucket": "65+", "board_type": "final_board", "data_quality_score": 0.6},
+        {"outcome": "PASS", "lean": "PASS", "actual": "NRFI", "nrfi_probability": 0.52, "yrfi_probability": 0.48, "confidence_tier": "PASS", "probability_bucket": "50-54", "board_type": "early_board", "data_quality_score": 0.2},
+    ]
+    summary = bt._compute_summary(results)
+    assert summary["probability_bucket_details"]["65+"]["count"] == 2
+    assert summary["probability_bucket_details"]["50-54"]["count"] == 0
+    assert summary["probability_bucket_details"]["65+"]["actual_nrfi_rate"] == 0.5
+    assert summary["probability_bucket_details"]["65+"]["calibration_error"] == -0.165
+    assert summary["nrfi_pick_summary"]["count"] == 2
+
+
+def test_overall_mae_uses_buckets_with_min_count():
+    results = []
+    for _ in range(30):
+        results.append({"outcome": "W", "lean": "NRFI", "actual": "NRFI", "nrfi_probability": 0.6, "yrfi_probability": 0.4, "confidence_tier": "A", "probability_bucket": "60-64", "board_type": "final_board", "data_quality_score": 0.9})
+    for _ in range(10):
+        results.append({"outcome": "L", "lean": "NRFI", "actual": "YRFI", "nrfi_probability": 0.66, "yrfi_probability": 0.34, "confidence_tier": "A", "probability_bucket": "65+", "board_type": "final_board", "data_quality_score": 0.9})
+    summary = bt._compute_summary(results)
+    assert summary["overall_mean_absolute_calibration_error_for_buckets_count_ge_30"] == 0.4

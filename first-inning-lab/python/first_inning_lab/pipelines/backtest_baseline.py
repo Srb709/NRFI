@@ -178,6 +178,10 @@ def _compute_summary(results: list[dict]) -> dict:
     def rate(rows: list[dict]) -> float | None:
         return round(sum(1 for r in rows if r["outcome"] == "W") / len(rows), 4) if rows else None
 
+    def avg_num(rows: list[dict], key: str) -> float | None:
+        vals = [float(r[key]) for r in rows if r.get(key) is not None]
+        return round(sum(vals)/len(vals), 4) if vals else None
+
     by_conf = defaultdict(list)
     by_bucket = defaultdict(list)
     by_board = defaultdict(list)
@@ -186,23 +190,59 @@ def _compute_summary(results: list[dict]) -> dict:
         by_bucket[row.get("probability_bucket")].append(row)
         by_board[row.get("board_type")].append(row)
 
+    ordered_buckets = ["35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65+"]
+    bucket_details = {}
+    for b in ordered_buckets:
+        rows = by_bucket.get(b, [])
+        count = len(rows)
+        w = sum(1 for r in rows if r["outcome"] == "W")
+        l = sum(1 for r in rows if r["outcome"] == "L")
+        avg_p = avg_num(rows, "nrfi_probability")
+        actual_nrfi = (sum(1 for r in rows if r["actual"] == "NRFI") / count) if count else None
+        cal = (actual_nrfi - avg_p) if count and avg_p is not None and actual_nrfi is not None else None
+        bucket_details[b] = {
+            "count": count, "wins": w, "losses": l,
+            "win_rate": round(w/count,4) if count else None,
+            "average_model_nrfi_probability": avg_p,
+            "actual_nrfi_rate": round(actual_nrfi,4) if actual_nrfi is not None else None,
+            "average_data_quality": avg_num(rows, "data_quality_score"),
+            "calibration_error": round(cal,4) if cal is not None else None,
+            "absolute_calibration_error": round(abs(cal),4) if cal is not None else None,
+        }
+
+    conf_details = {}
+    for tier, rows in sorted(by_conf.items()):
+        count=len(rows); w=sum(1 for r in rows if r['outcome']=='W'); l=sum(1 for r in rows if r['outcome']=='L')
+        actual_nrfi=(sum(1 for r in rows if r['actual']=='NRFI')/count) if count else None
+        conf_details[tier]={"count":count,"wins":w,"losses":l,"win_rate":round(w/count,4) if count else None,"average_model_nrfi_probability":avg_num(rows,'nrfi_probability'),"actual_nrfi_rate":round(actual_nrfi,4) if actual_nrfi is not None else None,"average_data_quality":avg_num(rows,'data_quality_score')}
+
+    def side_summary(rows, key):
+        c=len(rows); w=sum(1 for r in rows if r['outcome']=='W'); l=sum(1 for r in rows if r['outcome']=='L')
+        return {"count":c,"wins":w,"losses":l,"win_rate":round(w/c,4) if c else None,"average_model_probability_for_that_side":avg_num(rows,key)}
+
+    mae_eligible=[v['absolute_calibration_error'] for v in bucket_details.values() if v['count']>=30 and v['absolute_calibration_error'] is not None]
+    overall_mae=round(sum(mae_eligible)/len(mae_eligible),4) if mae_eligible else None
+    non_empty=[(k,v) for k,v in bucket_details.items() if v['count']>0 and v['win_rate'] is not None]
+    best=max(non_empty,key=lambda x:x[1]['win_rate'])[0] if non_empty else None
+    worst=min(non_empty,key=lambda x:x[1]['win_rate'])[0] if non_empty else None
+
     return {
-        "total_games_tested": len(results),
-        "priced_games": len(priced),
-        "passes": sum(1 for r in results if r["outcome"] == "PASS"),
-        "nrfi_picks": len(nrfi),
-        "yrfi_picks": len(yrfi),
-        "wins": len(wins),
-        "losses": len(losses),
-        "win_rate": rate(priced),
-        "nrfi_win_rate": rate(nrfi),
-        "yrfi_win_rate": rate(yrfi),
+        "total_games_tested": len(results), "priced_games": len(priced), "passes": sum(1 for r in results if r["outcome"] == "PASS"),
+        "nrfi_picks": len(nrfi), "yrfi_picks": len(yrfi), "wins": len(wins), "losses": len(losses),
+        "win_rate": rate(priced), "nrfi_win_rate": rate(nrfi), "yrfi_win_rate": rate(yrfi),
         "win_rate_by_confidence_tier": {k: rate(v) for k, v in sorted(by_conf.items())},
-        "win_rate_by_probability_bucket": {k: rate(by_bucket.get(k, [])) for k in ["35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65+"]},
+        "win_rate_by_probability_bucket": {k: rate(by_bucket.get(k, [])) for k in ordered_buckets},
         "win_rate_by_board_type": {k: rate(by_board.get(k, [])) for k in ["early_board", "final_board"]},
         "average_data_quality": round(sum(float(r["data_quality_score"]) for r in results) / len(results), 4) if results else None,
         "average_data_quality_wins": round(sum(float(r["data_quality_score"]) for r in wins) / len(wins), 4) if wins else None,
         "average_data_quality_losses": round(sum(float(r["data_quality_score"]) for r in losses) / len(losses), 4) if losses else None,
+        "probability_bucket_details": bucket_details,
+        "confidence_tier_details": conf_details,
+        "nrfi_pick_summary": side_summary(nrfi, 'nrfi_probability'),
+        "yrfi_pick_summary": side_summary(yrfi, 'yrfi_probability'),
+        "overall_mean_absolute_calibration_error_for_buckets_count_ge_30": overall_mae,
+        "best_bucket_by_win_rate_with_count": {"bucket": best, **bucket_details[best]} if best else None,
+        "worst_bucket_by_win_rate_with_count": {"bucket": worst, **bucket_details[worst]} if worst else None,
     }
 
 
@@ -262,6 +302,13 @@ def run(start: str | None = None, end: str | None = None) -> dict:
     print(f"Priced games: {summary['priced_games']} | Passes: {summary['passes']}")
     print(f"Wins: {summary['wins']} | Losses: {summary['losses']} | Win rate: {summary['win_rate']}")
     print(f"NRFI picks: {summary['nrfi_picks']} | YRFI picks: {summary['yrfi_picks']}")
+    print(f"NRFI record: {summary['nrfi_pick_summary']['wins']}-{summary['nrfi_pick_summary']['losses']} ({summary['nrfi_pick_summary']['win_rate']})")
+    print(f"YRFI record: {summary['yrfi_pick_summary']['wins']}-{summary['yrfi_pick_summary']['losses']} ({summary['yrfi_pick_summary']['win_rate']})")
+    print(f"Best bucket: {summary['best_bucket_by_win_rate_with_count']}")
+    print(f"Worst bucket: {summary['worst_bucket_by_win_rate_with_count']}")
+    b65 = summary['probability_bucket_details']['65+']
+    if b65['count'] >= 30 and (b65['absolute_calibration_error'] or 0) >= 0.05:
+        print("WARNING: 65+ bucket appears miscalibrated.")
     print(f"Average data quality: {summary['average_data_quality']}")
 
     return {"results": results, "summary": summary, "files": {"csv": str(csv_path), "json": str(json_path), "summary": str(summary_path)}}

@@ -59,12 +59,32 @@ def run(date: str, backtest: bool = False):
     historical_rows = [p.get("raw_features", {}).get("historical_league", {}) for p in preds]
     hist_dataset_missing = sum(1 for h in historical_rows if "Historical first-inning dataset unavailable." in (h.get("warnings") or []))
     hist_below_threshold = sum(1 for h in historical_rows if h and not h.get("available") and "Historical first-inning dataset unavailable." not in (h.get("warnings") or []))
-    hist_fallback_used = sum(1 for h in historical_rows if h.get("season_fallback_used"))
+    fallback_keys = {
+        "league": "historical_league",
+        "venue": "historical_venue",
+        "team_away": "historical_team_away",
+        "team_home": "historical_team_home",
+        "pitcher_away": "historical_pitcher_away",
+        "pitcher_home": "historical_pitcher_home",
+    }
+    hist_fallback_detail = {k: 0 for k in fallback_keys}
+    hist_fallback_used = 0
+    for pred in preds:
+        raw = pred.get("raw_features", {})
+        used_any = False
+        for label, key in fallback_keys.items():
+            block = raw.get(key, {})
+            if block.get("season_fallback_used"):
+                hist_fallback_detail[label] += 1
+                used_any = True
+        if used_any:
+            hist_fallback_used += 1
     hist_missing = sum(1 for x in fs if not x.get('historical_first_inning_available'))
     print(f"Historical first-inning unavailable (all causes): {hist_missing}")
     print(f"Historical dataset file missing: {hist_dataset_missing}")
     print(f"Historical dataset below threshold: {hist_below_threshold}")
     print(f"Historical prior-season fallback used: {hist_fallback_used}")
+    print(f"Historical fallback detail: {hist_fallback_detail}")
     if hist_dataset_missing:
         print("Historical first-inning dataset file missing; run build_historical_first_inning_dataset.")
     print(f"Average data quality: {0 if avg_quality is None else round(avg_quality * 100)}%")

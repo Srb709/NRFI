@@ -198,3 +198,21 @@ def test_entity_season_fallback_uses_prior_when_requested_season_entity_sample_i
     assert pitcher["season_fallback_used"] is True
     assert pitcher["sample_size"] == 25
     assert any("Using prior historical season 2025 for 2026 pitcher factor." in x for x in pitcher["warnings"])
+
+
+def test_venue_factor_uses_fallback_season_league_baseline(monkeypatch, tmp_path):
+    p = tmp_path / "first_inning_results.csv"
+    rows = []
+    rows.extend([{"season": 2025, "venue_id": 1, "total_runs_1st": 2, "nrfi_result": False, "away_team_id": 1, "home_team_id": 2, "away_runs_1st": 1, "home_runs_1st": 1, "away_starting_pitcher_id": 10, "home_starting_pitcher_id": 20} for _ in range(20)])
+    rows.extend([{"season": 2025, "venue_id": 2, "total_runs_1st": 0, "nrfi_result": True, "away_team_id": 3, "home_team_id": 4, "away_runs_1st": 0, "home_runs_1st": 0, "away_starting_pitcher_id": 30, "home_starting_pitcher_id": 40} for _ in range(100)])
+    rows.extend([{"season": 2026, "venue_id": 1, "total_runs_1st": 1, "nrfi_result": False, "away_team_id": 1, "home_team_id": 2, "away_runs_1st": 1, "home_runs_1st": 0, "away_starting_pitcher_id": 10, "home_starting_pitcher_id": 20} for _ in range(5)])
+    rows.extend([{"season": 2026, "venue_id": 2, "total_runs_1st": 2, "nrfi_result": False, "away_team_id": 3, "home_team_id": 4, "away_runs_1st": 1, "home_runs_1st": 1, "away_starting_pitcher_id": 30, "home_starting_pitcher_id": 40} for _ in range(100)])
+    _write_hist_csv(p, rows)
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+
+    venue = hff.get_venue_first_inning_factor(1, 2026)
+    league_2025 = hff.get_league_first_inning_baseline(2025)
+    assert venue["requested_season"] == 2026
+    assert venue["used_season"] == 2025
+    assert venue["season_fallback_used"] is True
+    assert round(venue["league_avg_first_inning_runs"], 6) == round(league_2025["league_avg_first_inning_runs"], 6)

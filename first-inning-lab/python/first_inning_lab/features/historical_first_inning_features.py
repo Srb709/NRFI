@@ -102,7 +102,7 @@ def get_venue_first_inning_factor(venue_id: int, season: int | None = None) -> d
         rows, season, VENUE_MIN_GAMES, "venue", lambda r: int(r.get("venue_id") or -1) == int(venue_id)
     )
     n = len(venue_rows)
-    league = get_league_first_inning_baseline(season)
+    league = get_league_first_inning_baseline(used_season)
     if n < VENUE_MIN_GAMES or not league.get("available"):
         return _with_season_meta({"available": False, "venue_id": venue_id, "sample_size": n, "venue_avg_first_inning_runs": None, "venue_nrfi_rate": None, "venue_yrfi_rate": None, "league_avg_first_inning_runs": league.get("league_avg_first_inning_runs"), "venue_first_inning_run_factor": None, "warnings": warnings + season_warnings + ["Historical first-inning sample below threshold."]}, season, used_season, fallback_used)
     venue_total = sum(float(r.get("total_runs_1st") or 0) for r in venue_rows)
