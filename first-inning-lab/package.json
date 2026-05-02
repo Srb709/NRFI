@@ -12,7 +12,9 @@
     "python:today": "cd python && python -m first_inning_lab.pipelines.build_today_board",
     "python:grade": "cd python && python -m first_inning_lab.pipelines.grade_first_innings",
     "python:history": "cd python && python -m first_inning_lab.pipelines.build_historical_first_inning_dataset",
-    "python:backtest": "cd python && python -m first_inning_lab.pipelines.backtest_baseline"
+    "python:backtest": "cd python && python -m first_inning_lab.pipelines.backtest_baseline",
+    "python:update-history": "cd python && python -m first_inning_lab.pipelines.update_historical_first_innings",
+    "daily": "npm run python:update-history && npm run python:today && cd python && python -m first_inning_lab.pipelines.grade_first_innings"
   },
   "dependencies": {
     "next": "14.2.33",

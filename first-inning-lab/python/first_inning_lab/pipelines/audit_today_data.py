@@ -1,6 +1,6 @@
 from __future__ import annotations
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from first_inning_lab.data_sources.mlb_stats_api import get_schedule
 from first_inning_lab.data_sources.weather_client import get_game_weather
@@ -40,7 +40,7 @@ def run(date: str):
         if historical_venue.get("season_fallback_used") or historical_league.get("season_fallback_used"):
             counts["historical_fallback_used"] += 1
         rows.append({"game":g.get("game"),"game_id":g.get("game_id"),"requested_historical_season":historical_venue.get("requested_season", historical_league.get("requested_season")),"used_historical_season":historical_venue.get("used_season", historical_league.get("used_season")),"season_fallback_used":bool(historical_venue.get("season_fallback_used") or historical_league.get("season_fallback_used")),"historical_dataset_file_exists":"Historical first-inning dataset unavailable." not in (historical_league.get("warnings") or []),"historical_dataset_available":fs.get("historical_first_inning_available"),"historical_venue_factor_available":fs.get("historical_venue_factor_available"),"historical_venue_sample_size":historical_venue.get("sample_size"),"historical_team_profile_available":(raw.get("historical_team_away") or {}).get("available") and (raw.get("historical_team_home") or {}).get("available"),"historical_pitcher_profile_available":(raw.get("historical_pitcher_away") or {}).get("available") and (raw.get("historical_pitcher_home") or {}).get("available"),"park_or_venue_signal_available":fs.get("park_or_venue_signal_available"),"top_blockers":blockers})
-    out={"generated_at":datetime.utcnow().isoformat()+"Z","date":date,"games":len(games),"counts":counts,"games_audit":rows}
+    out={"generated_at":datetime.now(timezone.utc).isoformat(),"date":date,"games":len(games),"counts":counts,"games_audit":rows}
     atomic_write_json(_root()/"data/live/today_data_audit.json",out)
 
 if __name__=='__main__':

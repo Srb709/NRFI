@@ -33,6 +33,20 @@ def predict_baseline(input_features: dict) -> dict:
     reasons = list(input_features.get("missing_data", []))
     dq = float(input_features.get("data_quality_score", 0))
 
+    explicit_reasons = []
+    if not feature_status.get("probable_pitchers_available"):
+        explicit_reasons.append("missing pitcher")
+    if not feature_status.get("pitcher_stats_available"):
+        explicit_reasons.append("missing pitcher stats")
+    if not feature_status.get("historical_venue_factor_available"):
+        explicit_reasons.append("missing venue sample")
+    if not feature_status.get("weather_available"):
+        explicit_reasons.append("missing weather")
+    if not feature_status.get("lineups_confirmed"):
+        explicit_reasons.append("missing lineup")
+    if not feature_status.get("pricing_available", True):
+        explicit_reasons.append("missing odds/pricing")
+
     required = [
         (feature_status.get("probable_pitchers_available"), "Missing probable pitcher; model price withheld."),
         (feature_status.get("pitcher_stats_available"), "Pitcher stats unavailable; model price withheld."),
@@ -41,7 +55,7 @@ def predict_baseline(input_features: dict) -> dict:
             ]
     missing = [msg for ok, msg in required if not ok]
     if missing:
-        return _pass_output(reasons + missing, warnings, dq, feature_status)
+        return _pass_output(reasons + explicit_reasons + missing, warnings, dq, feature_status)
 
     p = real.get("pitcher_safety_score")
     o = real.get("offense_danger_score")

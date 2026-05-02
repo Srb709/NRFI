@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+from datetime import datetime, timezone
 from pathlib import Path
 
 from first_inning_lab.data_sources.mlb_stats_api import get_first_inning_result
@@ -34,6 +36,38 @@ def run(date: str):
         results.append({"game_id": game.get("game_id"), "lean": lean, "outcome": outcome, **result})
     atomic_write_json(live / "today_results.json", results)
     atomic_write_json(live / "public_record_updates.json", {"date": date, "results": results})
+
+    history_dir = _root() / "data/history"
+    history_dir.mkdir(parents=True, exist_ok=True)
+    history_json = history_dir / "model_pick_history.json"
+    existing = read_json(history_json, default=[]) or []
+    by_key = {(x.get("date"), x.get("game_id"), x.get("board_type")): x for x in existing}
+    now = datetime.now(timezone.utc).isoformat()
+    for game in games:
+        pred = predictions.get(game.get("game_id"), {})
+        result = next((r for r in results if r.get("game_id") == game.get("game_id")), {})
+        row = {
+            "date": date,
+            "game_id": game.get("game_id"),
+            "teams": f"{game.get('away_team')} @ {game.get('home_team')}",
+            "model_lean": pred.get("lean"),
+            "nrfi_probability": pred.get("nrfi_probability"),
+            "confidence": pred.get("confidence_tier"),
+            "data_quality": pred.get("data_quality_score"),
+            "board_type": pred.get("probability_quality") or "early_board",
+            "actual_first_inning_result": result.get("result"),
+            "outcome": result.get("outcome"),
+            "generated_at": board.get("generated_at"),
+            "graded_at": now,
+        }
+        by_key[(row["date"], row["game_id"], row["board_type"])] = row
+    merged = list(by_key.values())
+    atomic_write_json(history_json, merged)
+    fields = ["date", "game_id", "teams", "model_lean", "nrfi_probability", "confidence", "data_quality", "board_type", "actual_first_inning_result", "outcome", "generated_at", "graded_at"]
+    with (history_dir / "model_pick_history.csv").open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(merged)
 
 
 if __name__ == "__main__":

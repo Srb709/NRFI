@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from first_inning_lab.data_sources.mlb_stats_api import get_schedule
@@ -16,7 +16,7 @@ def _root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def run(date: str):
+def run(date: str, backtest: bool = False):
     warnings: list[str] = []
     games = get_schedule(date)
     parks = {str(p.get("venue_id")): p for p in read_json(_root() / "data/reference/park_factors.json", default=[])}
@@ -24,7 +24,8 @@ def run(date: str):
     for game in games:
         park = parks.get(str(game.get("venue_id")))
         weather = get_game_weather((park or {}).get("latitude"), (park or {}).get("longitude"), game.get("start_time") or "")
-        assembled = assemble_game_features(game, int(date[:4]), parks, weather)
+        historical_season = int((datetime.fromisoformat(date) - timedelta(days=1)).strftime("%Y")) if not backtest else int(date[:4])
+        assembled = assemble_game_features(game, historical_season, parks, weather)
         pred = predict_baseline(assembled)
         pred["game_id"] = game.get("game_id")
         pred["board_status"] = "FINAL_BOARD" if assembled["feature_status"].get("lineups_confirmed") else "EARLY_BOARD"
@@ -36,7 +37,7 @@ def run(date: str):
     atomic_write_json(live / "today_predictions.json", preds)
     avg_quality = (sum(float(p.get("data_quality_score", 0.0)) for p in preds) / len(preds)) if preds else None
     summary = {"games": len(games), "average_data_quality": avg_quality}
-    atomic_write_json(live / "today_board.json", {"generated_at": datetime.utcnow().isoformat() + "Z", "date": date, "source": "free_local_pipeline", "board_status": "LOW_CONFIDENCE" if not games else "MIXED", "games": games, "predictions": preds, "warnings": warnings, "summary": summary})
+    atomic_write_json(live / "today_board.json", {"generated_at": datetime.now(timezone.utc).isoformat(), "date": date, "source": "free_local_pipeline", "board_status": "LOW_CONFIDENCE" if not games else "MIXED", "games": games, "predictions": preds, "warnings": warnings, "summary": summary})
 
     priced = [p for p in preds if p.get("probability_available")]
     fs = [p.get("feature_status", {}) for p in preds]
@@ -76,4 +77,4 @@ def run(date: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(); parser.add_argument("--date"); args = parser.parse_args(); run(args.date or today_et())
+    parser = argparse.ArgumentParser(); parser.add_argument("--date"); parser.add_argument("--backtest", action="store_true"); args = parser.parse_args(); run(args.date or today_et(), backtest=args.backtest)
