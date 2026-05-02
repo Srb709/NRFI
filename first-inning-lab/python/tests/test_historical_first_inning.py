@@ -143,3 +143,58 @@ def test_build_today_board_message_when_dataset_exists_below_threshold(monkeypat
     out = capsys.readouterr().out
     assert "run build_historical_first_inning_dataset" not in out
     assert "Historical dataset below threshold: 1" in out
+
+
+def test_entity_season_fallback_uses_prior_when_requested_season_entity_sample_is_low(monkeypatch, tmp_path):
+    p = tmp_path / "first_inning_results.csv"
+    rows = []
+    rows.extend([
+        {"season": 2025, "venue_id": 1, "total_runs_1st": 1, "nrfi_result": False, "away_team_id": 10, "home_team_id": 11, "away_runs_1st": 1, "home_runs_1st": 0, "away_starting_pitcher_id": 50, "home_starting_pitcher_id": 999}
+        for _ in range(25)
+    ])
+    rows.extend([
+        {"season": 2025, "venue_id": 2, "total_runs_1st": 0, "nrfi_result": True, "away_team_id": 20, "home_team_id": 21, "away_runs_1st": 0, "home_runs_1st": 0, "away_starting_pitcher_id": 60, "home_starting_pitcher_id": 61}
+        for _ in range(95)
+    ])
+    for i in range(5):
+        rows.append(
+            {
+                "season": 2026,
+                "venue_id": 1,
+                "total_runs_1st": 1,
+                "nrfi_result": False,
+                "away_team_id": 10,
+                "home_team_id": 11,
+                "away_runs_1st": 1,
+                "home_runs_1st": 0,
+                "away_starting_pitcher_id": 50 if i < 4 else 52,
+                "home_starting_pitcher_id": 999,
+            }
+        )
+    rows.extend([
+        {"season": 2026, "venue_id": 2, "total_runs_1st": 0, "nrfi_result": True, "away_team_id": 20, "home_team_id": 21, "away_runs_1st": 0, "home_runs_1st": 0, "away_starting_pitcher_id": 60, "home_starting_pitcher_id": 61}
+        for _ in range(115)
+    ])
+    _write_hist_csv(p, rows)
+    monkeypatch.setattr(hff, "_dataset_path", lambda: p)
+
+    venue = hff.get_venue_first_inning_factor(1, 2026)
+    assert venue["available"] is True
+    assert venue["used_season"] == 2025
+    assert venue["season_fallback_used"] is True
+    assert venue["sample_size"] == 25
+    assert any("Using prior historical season 2025 for 2026 venue factor." in x for x in venue["warnings"])
+
+    team = hff.get_team_first_inning_profile(10, 2026)
+    assert team["available"] is True
+    assert team["used_season"] == 2025
+    assert team["season_fallback_used"] is True
+    assert team["sample_size"] == 25
+    assert any("Using prior historical season 2025 for 2026 team factor." in x for x in team["warnings"])
+
+    pitcher = hff.get_pitcher_first_inning_profile(50, 2026)
+    assert pitcher["available"] is True
+    assert pitcher["used_season"] == 2025
+    assert pitcher["season_fallback_used"] is True
+    assert pitcher["sample_size"] == 25
+    assert any("Using prior historical season 2025 for 2026 pitcher factor." in x for x in pitcher["warnings"])
