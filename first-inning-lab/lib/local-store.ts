@@ -6,7 +6,7 @@ import { BoardMetadata, Game, LiveResult, Prediction, PublicResult } from './typ
 const dataDir = path.join(process.cwd(), 'data');
 
 const defaultMeta: BoardMetadata = {
-  source: 'demo', generatedAt: null, boardStatus: 'DEMO_FALLBACK', isDemo: true, warnings: ['Live local board unavailable.'],
+  source: 'demo', generatedAt: null, boardStatus: 'DEMO_FALLBACK', isDemo: true, warnings: ['Live local board unavailable.'], resultsSource: 'demo',
 };
 
 const VALID_LEANS: PublicResult['model_lean'][] = ['NRFI', 'YRFI', 'PASS'];
@@ -42,12 +42,12 @@ function normalizeGame(game: Partial<Game> & Record<string, unknown>): Game {
 export async function getGames(): Promise<Game[]> {
   const board = await readJson<Record<string, unknown>>('live/today_board.json');
   if (board) {
-    cacheMeta = { source:'live_local', generatedAt:(board.generated_at as string) ?? null, boardStatus:(board.board_status as string) ?? 'EARLY_BOARD', isDemo:false, warnings:arr<string>(board.warnings), summary:board.summary as BoardMetadata['summary'] };
+    cacheMeta = { source:'live_local', generatedAt:(board.generated_at as string) ?? null, boardStatus:(board.board_status as string) ?? 'EARLY_BOARD', isDemo:false, warnings:arr<string>(board.warnings), summary:board.summary as BoardMetadata['summary'], resultsSource: 'empty' };
     const games = arr<Record<string, unknown>>(board.games).map(normalizeGame);
     if (games.length) return games;
   }
   const games = await readJson<Array<Partial<Game> & Record<string, unknown>>>('live/today_games.json');
-  if (games?.length) { cacheMeta = { ...cacheMeta, source:'live_local', isDemo:false, boardStatus: cacheMeta.boardStatus || 'EARLY_BOARD' }; return games.map(normalizeGame); }
+  if (games?.length) { cacheMeta = { ...cacheMeta, source:'live_local', isDemo:false, boardStatus: cacheMeta.boardStatus || 'EARLY_BOARD', resultsSource: cacheMeta.resultsSource ?? 'empty' }; return games.map(normalizeGame); }
   cacheMeta = defaultMeta;
   return (await readJson<Game[]>('demo-games.json')) ?? fallbackGames;
 }
@@ -91,14 +91,30 @@ function normalizeResult(row: LiveResult | PublicResult): PublicResult {
 
 export async function getResults(): Promise<PublicResult[]> {
   const live = await readJson<LiveResult[]>('live/today_results.json');
-  if (live?.length) return live.map(normalizeResult);
+  if (live?.length) {
+    cacheMeta = { ...cacheMeta, resultsSource: 'live' };
+    return live.map(normalizeResult);
+  }
 
   const updatesRaw = await readJson<LiveResult[] | { date?: string; results?: LiveResult[] }>('live/public_record_updates.json');
   const updates = Array.isArray(updatesRaw) ? updatesRaw : arr<LiveResult>(updatesRaw?.results);
-  if (updates.length) return updates.map(normalizeResult);
+  if (updates.length) {
+    cacheMeta = { ...cacheMeta, resultsSource: 'public_record' };
+    return updates.map(normalizeResult);
+  }
 
   const record = await readJson<PublicResult[]>('public-record.json');
-  if (record?.length) return record.map(normalizeResult);
+  if (record?.length) {
+    cacheMeta = { ...cacheMeta, resultsSource: 'public_record' };
+    return record.map(normalizeResult);
+  }
+
+  if (cacheMeta.source === 'live_local') {
+    cacheMeta = { ...cacheMeta, resultsSource: 'empty' };
+    return [];
+  }
+
+  cacheMeta = { ...cacheMeta, resultsSource: 'demo' };
   return fallbackResults.map(normalizeResult);
 }
 

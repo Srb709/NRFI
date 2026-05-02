@@ -66,6 +66,7 @@ export type LiveResult = {
 
 export type BoardMetadata = {
   source: 'live_local' | 'demo';
+  resultsSource?: 'live' | 'public_record' | 'empty' | 'demo';
   generatedAt: string | null;
   boardStatus: string;
   isDemo: boolean;
